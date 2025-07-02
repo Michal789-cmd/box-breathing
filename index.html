@@ -29,7 +29,7 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      justify-content:flex-start; /* allow scroll on small screens */
+      justify-content:flex-start;
       min-height:100vh;
       padding-top:1.5rem;
       box-sizing:border-box;
@@ -38,17 +38,7 @@
     h1{margin:0 0 1rem;text-align:center;line-height:1.2}
 
     /* === Breathing box === */
-    .box{
-      position:relative;
-      width:220px;height:220px;
-      border:4px solid var(--primary);
-      border-radius:var(--border-radius);
-      display:flex;align-items:center;justify-content:center;
-      margin-bottom:1rem;
-      overflow:hidden;
-      background:var(--box-bg);
-      transition:background .3s,border-color .3s;
-    }
+    .box{position:relative;width:220px;height:220px;border:4px solid var(--primary);border-radius:var(--border-radius);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s}
     #stepText{font-size:1.5rem;font-weight:700;color:var(--primary);z-index:1;transition:color .3s}
     .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s}
 
@@ -77,16 +67,14 @@
 
     /* === Mobile tweaks === */
     @media(max-width:480px){
-      .box{width:180px;height:180px;}
-      #stepText{font-size:1.3rem;}
-      button{padding:.5rem 1.1rem;font-size:.9rem;}
-      .controls input{width:3.2rem;font-size:.9rem;}
-      h1{font-size:1.25rem;}
+      .box{width:180px;height:180px}
+      #stepText{font-size:1.3rem}
+      button{padding:.5rem 1.1rem;font-size:.9rem}
+      .controls input{width:3.2rem;font-size:.9rem}
+      h1{font-size:1.25rem}
       .theme-toggle{font-size:.8rem;gap:.35rem}
     }
-    @media(max-height:600px){ /* move toggle to top on very short screens */
-      .theme-toggle{top:1rem;bottom:auto;}
-    }
+    @media(max-height:600px){.theme-toggle{top:1rem;bottom:auto}}
 
     /* === Timer bar animations === */
     @keyframes growX{from{width:0}to{width:100%}}
@@ -123,68 +111,44 @@
 
   <script>
     // Elements
-    const stepText   = document.getElementById('stepText');
-    const bar        = document.getElementById('bar');
-    const startBtn   = document.getElementById('startBtn');
-    const resetBtn   = document.getElementById('resetBtn');
-    const progressDiv= document.getElementById('progress');
-    const targetInput= document.getElementById('target');
+    const stepText      = document.getElementById('stepText');
+    const bar           = document.getElementById('bar');
+    const startBtn      = document.getElementById('startBtn');
+    const resetBtn      = document.getElementById('resetBtn');
+    const progressDiv   = document.getElementById('progress');
+    const targetInput   = document.getElementById('target');
     const durationInput = document.getElementById('duration');
-    const themeToggle  = document.getElementById('themeToggle');
+    const themeToggle   = document.getElementById('themeToggle');
 
-    // Data & state
-    const phases = ['Nádech','Zadrž dech','Výdech','Zadrž dech'];
-    const beepFreq= [440,523,392,523];
-    let index=0, completed=0, target=4, stepDuration=4, interval, dots=[];
+    // Constants
+    const phases   = ['Nádech','Zadrž dech','Výdech','Zadrž dech'];
+    const beepFreq = [440,523,392,523];
+
+    // State
+    let index=0, completed=0, target=4, stepDuration=4, interval=null, dots=[];
     let audioCtx=null;
 
-    /* === Helpers === */
+    /* === Utility functions === */
     function beep(freq, dur=200){
-      if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-      const osc=audioCtx.createOscillator();
-      const g = audioCtx.createGain();
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
       osc.frequency.value=freq;
-      osc.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.0001,audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.01);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.0001,audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.25,audioCtx.currentTime+0.02);
       osc.start();
-      g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur/1000);
+      gain.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur/1000);
       osc.stop(audioCtx.currentTime+dur/1000+0.05);
     }
 
-    function setTheme(initial=false){
+    function applyTheme(initial=false){
       if(initial){
-        const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         document.body.classList.toggle('dark', prefersDark);
-        themeToggle.checked=prefersDark;
-      }else{
+        themeToggle.checked = prefersDark;
+      } else {
         document.body.classList.toggle('dark', themeToggle.checked);
-      }
-    }
-
-    function drawBar(){
-      bar.style.animation='none';
-      bar.style.transform='none';
-      bar.style.top='auto';bar.style.bottom='auto';bar.style.left='auto';bar.style.right='auto';
-      bar.style.width='4px';bar.style.height='4px';
-      switch(index){
-        case 0:
-          bar.style.bottom='0';bar.style.left='0';bar.style.height='4px';bar.style.width='0';
-          bar.style.animation=`growX ${stepDuration}s linear forwards`;
-          break;
-        case 1:
-          bar.style.right='0';bar.style.bottom='0';bar.style.width='4px';bar.style.height='0';
-          bar.style.animation=`growY ${stepDuration}s linear forwards`;
-          break;
-        case 2:
-          bar.style.top='0';bar.style.right='0';bar.style.height='4px';bar.style.width='0';
-          bar.style.animation=`growX ${stepDuration}s linear forwards`;
-          bar.style.transform='scaleX(-1)';
-          break;
-        case 3:
-          bar.style.left='0';bar.style.top='0';bar.style.width='4px';bar.style.height='0';
-          bar.style.animation=`growY ${stepDuration}s linear forwards`;
-          break;
       }
     }
 
@@ -192,36 +156,56 @@
       progressDiv.innerHTML='';
       dots=[];
       for(let i=0;i<target;i++){
-        const d=document.createElement('div');
-        d.className='dot';
-        progressDiv.appendChild(d);
-        dots.push(d);
+        const d=document.createElement('div'); d.className='dot'; progressDiv.appendChild(d); dots.push(d);
       }
       completed=0;
     }
 
-    function markDot(){
-      if(completed-1>=0 && completed-1<dots.length){dots[completed-1].classList.add('done');}
-    }
+    function markDot(){ if(completed-1>=0 && completed-1<dots.length) dots[completed-1].classList.add('done'); }
 
-    function nextPhase(){
-      index=(index+1)%phases.length;
-      stepText.textContent=phases[index];
-      drawBar();
-      beep(beepFreq[index]);
-      if(index===0){
-        completed++;
-        markDot();
-        if(completed>=target){stopCycle();}
+    function drawBar(){
+      bar.style.animation='none'; bar.style.transform='none';
+      bar.style.top='auto'; bar.style.bottom='auto'; bar.style.left='auto'; bar.style.right='auto';
+      bar.style.width='4px'; bar.style.height='4px';
+      switch(index){
+        case 0: bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0'; bar.style.animation=`growX ${stepDuration}s linear forwards`; break;
+        case 1: bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0'; bar.style.animation=`growY ${stepDuration}s linear forwards`; break;
+        case 2: bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0'; bar.style.animation=`growX ${stepDuration}s linear forwards`; bar.style.transform='scaleX(-1)'; break;
+        case 3: bar.style.left='0'; bar.style.top='0'; bar.style.width='4px'; bar.style.height='0'; bar.style.animation=`growY ${stepDuration}s linear forwards`; break;
       }
     }
 
+    /* === Cycle control === */
+    function nextPhase(){
+      index = (index+1) % phases.length;
+      stepText.textContent = phases[index];
+      drawBar(); beep(beepFreq[index]);
+      if(index===0){ completed++; markDot(); if(completed>=target) stopCycle(); }
+    }
+
     function startCycle(){
-      target=parseInt(targetInput.value)||1;
-      stepDuration=parseFloat(durationInput.value)||4;
+      target = parseInt(targetInput.value)||1;
+      stepDuration = parseFloat(durationInput.value)||4;
       buildDots();
-      index=0;completed=0;
-      stepText.textContent=phases[index];
-      drawBar();
-      beep(beepFreq[index]);
-      startBtn
+      index=0; completed=0;
+      stepText.textContent = phases[index];
+      drawBar(); beep(beepFreq[index]);
+      startBtn.disabled=true;
+      clearInterval(interval);
+      interval=setInterval(nextPhase, stepDuration*1000);
+    }
+
+    function stopCycle(){ clearInterval(interval); bar.style.animation='none'; stepText.textContent='Hotovo!'; startBtn.disabled=false; }
+    function resetCycle(){ clearInterval(interval); startBtn.disabled=false; stepText.textContent='Připrav se'; bar.style.animation='none'; buildDots(); index=0; completed=0; }
+
+    /* === Initialisation === */
+    applyTheme(true); buildDots();
+
+    /* === Event listeners === */
+    themeToggle.addEventListener('change',()=>applyTheme());
+    startBtn.addEventListener('click', startCycle);
+    resetBtn.addEventListener('click', resetCycle);
+    targetInput.addEventListener('input',()=>{target=parseInt(targetInput.value)||1; buildDots();});
+  </script>
+</body>
+</html>
