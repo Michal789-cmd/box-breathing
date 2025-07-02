@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Box Breathing – nastavitelný</title>
+  <style>
+    /* === Theme variables === */
+    :root{
+      --bg:#f0f4f8;
+      --fg:#333;
+      --box-bg:#fff;
+      --primary:#0077cc;
+      --border-radius:12px;
+    }
+    body.dark{
+      --bg:#111827;
+      --fg:#e5e7eb;
+      --box-bg:#1f2937;
+      --primary:#3b82f6;
+    }
+
+    /* === Base layout === */
+    body{
+      font-family:system-ui,sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      height:100vh;
+      transition:background .3s,color .3s;
+    }
+    h1{margin-bottom:1rem}
+
+    /* === Breathing box === */
+    .box{
+      position:relative;
+      width:220px;height:220px;
+      border:4px solid var(--primary);
+      border-radius:var(--border-radius);
+      display:flex;align-items:center;justify-content:center;
+      margin-bottom:1rem;
+      overflow:hidden;
+      background:var(--box-bg);
+      transition:background .3s,border-color .3s;
+    }
+    #stepText{font-size:1.5rem;font-weight:700;color:var(--primary);z-index:1;transition:color .3s}
+    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s}
+
+    /* === Controls === */
+    .controls{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.7rem;justify-content:center}
+    .controls label{font-size:.95rem}
+    .controls input{width:4rem;padding:.3rem .4rem;font-size:1rem;border:1px solid #ccc;border-radius:4px;text-align:center;background:var(--box-bg);color:var(--fg)}
+
+    /* === Progress dots === */
+    .progress{display:flex;gap:.45rem;margin-bottom:1rem;flex-wrap:wrap;justify-content:center}
+    .dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--primary);transition:background .3s,border-color .3s}
+    .dot.done{background:var(--primary)}
+
+    /* === Buttons === */
+    .actions{display:flex;gap:.7rem}
+    button{padding:.6rem 1.4rem;font-size:1rem;border:none;background:var(--primary);color:#fff;border-radius:6px;cursor:pointer;transition:background .3s}
+    button:disabled{opacity:.6;cursor:default}
+
+    /* === Theme toggle === */
+    .theme-toggle{position:fixed;left:1rem;bottom:1rem;display:flex;align-items:center;gap:.45rem;font-size:.95rem;user-select:none}
+    .theme-toggle input{position:absolute;opacity:0;width:0;height:0}
+    .slider{position:relative;width:46px;height:24px;border:2px solid var(--primary);border-radius:24px;background:var(--box-bg);cursor:pointer;transition:background .3s,border-color .3s}
+    .slider::before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:var(--primary);top:1px;left:1px;transition:transform .3s,background .3s}
+    input:checked + .slider{background:var(--primary)}
+    input:checked + .slider::before{transform:translateX(22px);background:var(--box-bg)}
+
+    /* === Timer bar animations === */
+    @keyframes growX{from{width:0}to{width:100%}}
+    @keyframes growY{from{height:0}to{height:100%}}
+  </style>
+</head>
+<body>
+  <h1>Box Breathing (nastavitelný)</h1>
+
+  <div class="box">
+    <span id="stepText">Připrav se</span>
+    <div class="timer-bar" id="bar"></div>
+  </div>
+
+  <div class="controls">
+    <label for="target">Cílové série:</label>
+    <input type="number" id="target" min="1" value="4" />
+    <label for="duration">Délka kroku (s):</label>
+    <input type="number" id="duration" min="1" value="4" />
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="actions">
+    <button id="startBtn">Spustit</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <label class="theme-toggle" title="Přepnout světlý/tmavý režim">
+    <input type="checkbox" id="themeToggle" />
+    <span class="slider"></span>
+    <span>Tmavý&nbsp;režim</span>
+  </label>
+
+  <script>
+    // Elements
+    const stepText   = document.getElementById('stepText');
+    const bar        = document.getElementById('bar');
+    const startBtn   = document.getElementById('startBtn');
+    const resetBtn   = document.getElementById('resetBtn');
+    const progressDiv= document.getElementById('progress');
+    const targetInput= document.getElementById('target');
+    const durationInput = document.getElementById('duration');
+    const themeToggle  = document.getElementById('themeToggle');
+
+    // Data & state
+    const phases = ['Nádech','Zadrž dech','Výdech','Zadrž dech'];
+    const beepFreq= [440,523,392,523];
+    let index=0, completed=0, target=4, stepDuration=4, interval, dots=[];
+    let audioCtx=null;
+
+    /* === Helpers === */
+    function beep(freq, dur=200){
+      if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      const osc=audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.frequency.value=freq;
+      osc.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001,audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.01);
+      osc.start();
+      g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur/1000);
+      osc.stop(audioCtx.currentTime+dur/1000+0.05);
+    }
+
+    function setTheme(initial=false){
+      if(initial){
+        const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.classList.toggle('dark', prefersDark);
+        themeToggle.checked=prefersDark;
+      }else{
+        document.body.classList.toggle('dark', themeToggle.checked);
+      }
+    }
+
+    function drawBar(){
+      bar.style.animation='none';
+      bar.style.transform='none';
+      bar.style.top='auto';bar.style.bottom='auto';bar.style.left='auto';bar.style.right='auto';
+      bar.style.width='4px';bar.style.height='4px';
+      switch(index){
+        case 0:
+          bar.style.bottom='0';bar.style.left='0';bar.style.height='4px';bar.style.width='0';
+          bar.style.animation=`growX ${stepDuration}s linear forwards`;
+          break;
+        case 1:
+          bar.style.right='0';bar.style.bottom='0';bar.style.width='4px';bar.style.height='0';
+          bar.style.animation=`growY ${stepDuration}s linear forwards`;
+          break;
+        case 2:
+          bar.style.top='0';bar.style.right='0';bar.style.height='4px';bar.style.width='0';
+          bar.style.animation=`growX ${stepDuration}s linear forwards`;
+          bar.style.transform='scaleX(-1)';
+          break;
+        case 3:
+          bar.style.left='0';bar.style.top='0';bar.style.width='4px';bar.style.height='0';
+          bar.style.animation=`growY ${stepDuration}s linear forwards`;
+          break;
+      }
+    }
+
+    function buildDots(){
+      progressDiv.innerHTML='';
+      dots=[];
+      for(let i=0;i<target;i++){
+        const d=document.createElement('div');
+        d.className='dot';
+        progressDiv.appendChild(d);
+        dots.push(d);
+      }
+      completed=0;
+    }
+
+    function markDot(){
+      if(completed-1>=0 && completed-1<dots.length){
+        dots[completed-1].classList.add('done');
+      }
+    }
+
+    /* === Flow === */
+    function nextPhase(){
+      index=(index+1)%phases.length;
+      stepText.textContent=phases[index];
+      drawBar();
+      beep(beepFreq[index]);
+      if(index===0){
+        completed++;
+        markDot();
+        if(completed>=target){stopCycle();}
+      }
+    }
+
+    function startCycle(){
+      target=parseInt(targetInput.value)||1;
+      stepDuration=parseFloat(durationInput.value)||4;
+      buildDots();
+      index=0;completed=0;
+      stepText.textContent=phases[index];
+      drawBar();
+      beep(beepFreq[index]);
+      startBtn.disabled=true;
+      clearInterval(interval);
+      interval=setInterval(nextPhase,stepDuration*1000);
+    }
+
+    function resetCycle(){
+      clearInterval(interval);
+      startBtn.disabled=false;
+      stepText.textContent='Připrav se';
+      bar.style.animation='none';
+      buildDots();
+      index=0;completed=0;
+    }
+
+    function stopCycle(){
+      clearInterval(interval);
+      stepText.textContent='Hotovo!';
+      bar.style.animation='none';
+      startBtn.disabled=false;
+    }
+
+    /* === Init === */
+    setTheme(true);
+    buildDots();
+
+    /* === Events === */
+    themeToggle.addEventListener('change',()=>setTheme());
+    startBtn.addEventListener('click',startCycle);
+    resetBtn.addEventListener('click',resetCycle);
+    targetInput.addEventListener('input',()=>{target=parseInt(targetInput.value)||1;buildDots();});
+  </script>
+</body>
+</html>
