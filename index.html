@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dechová cvičení – volný rytmus / 4–2–6 / CO₂ hold / Box</title>
+  <title>Dechová cvičení</title>
   <style>
     /* === Theme variables === */
     :root{
@@ -11,6 +11,7 @@
       --fg:#333;
       --box-bg:#fff;
       --primary:#0077cc;
+      --ink:#0a3d7a;          /* tmavší modrá pro text uprostřed */
       --border-radius:12px;
       --muted:#94a3b8;
     }
@@ -19,6 +20,7 @@
       --fg:#e5e7eb;
       --box-bg:#1f2937;
       --primary:#3b82f6;
+      --ink:#1e3a8a;          /* tmavší modrá i pro dark */
       --muted:#64748b;
     }
 
@@ -47,7 +49,7 @@
 
     /* === Breathing box === */
     .box{position:relative;width:240px;height:240px;border:4px solid var(--primary);border-radius:var(--border-radius);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s}
-    #stepText{font-size:1.5rem;font-weight:700;color:var(--primary);z-index:1;transition:color .3s;text-align:center;padding:0 .5rem}
+    #stepText{font-size:1.5rem;font-weight:700;color:var(--ink);z-index:2;transition:color .3s;text-align:center;padding:0 .5rem}
     .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s;opacity:0.9}
 
     /* === Controls === */
@@ -91,6 +93,19 @@
     /* === Timer bar animations === */
     @keyframes growX{from{width:0}to{width:100%}}
     @keyframes growY{from{height:0}to{height:100%}}
+    @keyframes shrinkY{from{height:100%}to{height:0}}
+
+    /* Pauza: oběh po obvodu čtverce */
+    @keyframes perimeter{
+      0%   {left:0;   bottom:0; top:auto; right:auto; width:0;    height:4px; transform:none}
+      25%  {left:0;   bottom:0;               width:100%; height:4px;}
+      25.01%{right:0; bottom:0; left:auto;    width:4px;  height:0;}
+      50%  {right:0;  bottom:0;               width:4px;  height:100%;}
+      50.01%{right:0; top:0; bottom:auto;     width:0;    height:4px; transform:scaleX(-1)}
+      75%  {right:0;  top:0;                  width:100%; height:4px;}
+      75.01%{left:0;  top:0; right:auto;      width:4px;  height:0; transform:none}
+      100% {left:0;   top:0;                  width:4px;  height:100%;}
+    }
   </style>
 </head>
 <body>
@@ -152,7 +167,7 @@
           { id:'exhale', label:'Výdech (s)', type:'number', min:0.5, step:0.1, default:4 },
           { id:'minutes', label:'Doba cvičení (min)', type:'number', min:1, step:1, default:5 }
         ],
-        hint: 'Střídá nádech a výdech až do vypršení zadané doby.',
+        hint: 'Střídá nádech (výplň nahoru) a výdech (výplň klesá) až do vypršení doby.',
         buildTimeline(params){
           const inh = Math.max(0.5, +params.inhale||4);
           const exh = Math.max(0.5, +params.exhale||4);
@@ -170,22 +185,20 @@
         name: 'Relaxační 4–2–6',
         mode: 'series',
         ui: [
-          { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 },
-          { id:'base', label:'Délka kroku (s)', type:'number', min:0.5, step:0.1, default:1 }
+          { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 }
         ],
-        hint: 'Sekvence 4× nádech, 2× zadrž, 6× výdech, opakovaně po počet sérií.',
+        hint: 'Pevné časy: 4 s nádech (spodní hrana), 2 s zadrž (výplň), 6 s výdech (výplň klesá).',
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||4));
-          const base = Math.max(0.5, +params.base||1);
-          const mult = [4,2,6];
           const labels = ['Nádech','Zadrž dech','Výdech'];
           const types  = ['inhale','hold','exhale'];
+          const durs   = [4,2,6];
           const steps=[]; const cycleEnds=[];
           for(let s=0;s<target;s++){
-            for(let i=0;i<mult.length;i++){
-              steps.push({ label: labels[i], type: types[i], dur: mult[i]*base });
+            for(let i=0;i<durs.length;i++){
+              steps.push({ label: labels[i], type: types[i], dur: durs[i] });
             }
-            cycleEnds.push(steps.length-1); // index konce serie
+            cycleEnds.push(steps.length-1);
           }
           const totalSec = steps.reduce((a,b)=>a+b.dur,0);
           return { steps, totalSec, meta:{ cycleEnds, target } };
@@ -196,16 +209,16 @@
         mode: 'series',
         ui: [
           { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:8 },
-          { id:'inhale', label:'Nádech (s)', type:'number', min:0.5, step:0.5, default:2 },
-          { id:'exhale', label:'Výdech vše ven (s)', type:'number', min:1, step:1, default:10 },
+          { id:'inhale', label:'Nádech (s)', type:'number', min:0.5, step:0.5, default:3 },
+          { id:'exhale', label:'Výdech vše ven (s)', type:'number', min:1, step:1, default:5 },
           { id:'hold',   label:'Zadržení (s)', type:'number', min:5, step:1, default:20 },
           { id:'pause',  label:'Pauza (s)', type:'number', min:5, step:5, default:30 }
         ],
-        hint: 'Sekvence: nádech (fix), výdech vše ven (fix), zadržení (nastavitelné, výchozí 20 s), pauza (nastavitelná, výchozí 30 s).',
+        hint: 'Sekvence: nádech (fix), výdech vše ven (fix), zadržení (nast.), pauza (nast., progress po obvodu).',
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||8));
-          const inh = Math.max(0.5, +params.inhale||2);
-          const exh = Math.max(1, +params.exhale||10);
+          const inh = Math.max(0.5, +params.inhale||3);
+          const exh = Math.max(1, +params.exhale||5);
           const hold= Math.max(5, +params.hold||20);
           const pause= Math.max(5, +params.pause||30);
           const labels=['Nádech','Výdech vše ven','Zadržení','Pauza'];
@@ -391,23 +404,41 @@
       void bar.offsetWidth; // reflow to reliably restart CSS animation
 
       switch(step.type){
-        case 'inhale': // bottom edge → right
-          bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
-          bar.style.animation=`growX ${dur} linear forwards`;
+        case 'inhale': {
+          if(exId==='free_timer'){
+            // Inhale = výplň celého čtverce zdola nahoru
+            bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='0';
+            bar.style.animation=`growY ${dur} linear forwards`;
+          } else {
+            // Default: spodní hrana → doprava
+            bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
+            bar.style.animation=`growX ${dur} linear forwards`;
+          }
           break;
-        case 'exhale': // top edge → left (mirror)
-          bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0';
-          bar.style.transform='scaleX(-1)';
-          bar.style.animation=`growX ${dur} linear forwards`;
+        }
+        case 'exhale': {
+          if(exId==='free_timer' || exId==='relax_4_2_6'){
+            // Výdech = výplň klesá zpět
+            bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='100%';
+            bar.style.animation=`shrinkY ${dur} linear forwards`;
+          } else {
+            // Default: horní hrana ←
+            bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0';
+            bar.style.transform='scaleX(-1)';
+            bar.style.animation=`growX ${dur} linear forwards`;
+          }
           break;
-        case 'hold': // fill up inside (height from bottom)
+        }
+        case 'hold': // výplň zdola nahoru
           bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='0';
           bar.style.animation=`growY ${dur} linear forwards`;
           break;
-        case 'ventilate': // right edge ↑
-        case 'pause':
+        case 'ventilate': // pravá hrana ↑
           bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
           bar.style.animation=`growY ${dur} linear forwards`;
+          break;
+        case 'pause': // obvod čtverce
+          bar.style.animation=`perimeter ${dur} linear forwards`;
           break;
       }
     }
