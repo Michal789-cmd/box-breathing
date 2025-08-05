@@ -140,7 +140,7 @@
     const tabButtons = document.querySelectorAll('.tab');
 
     // --- Beeps per type
-    const BEEP = { inhale:440, hold:520, exhale:392, ventilate:480 };
+    const BEEP = { inhale:440, hold:520, exhale:392, ventilate:480, pause:480 };
 
     // --- Exercises config
     const exercises = {
@@ -193,30 +193,30 @@
       },
       co2_hold: {
         name: 'CO₂ hold',
-        mode: 'table',
+        mode: 'series',
         ui: [
-          { id:'rounds',    label:'Kola', type:'number', min:1, step:1, default:8 },
-          { id:'ventStart', label:'Ventilace start (s)', type:'number', min:10, step:5, default:120 },
-          { id:'ventDec',   label:'Ventilace − krok (s)', type:'number', min:1, step:1, default:15 },
-          { id:'ventMin',   label:'Ventilace min (s)', type:'number', min:5, step:5, default:30 },
-          { id:'hold',      label:'Hold (s)', type:'number', min:10, step:5, default:90 }
+          { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:8 },
+          { id:'inhale', label:'Nádech (s)', type:'number', min:0.5, step:0.5, default:2 },
+          { id:'exhale', label:'Výdech vše ven (s)', type:'number', min:1, step:1, default:10 },
+          { id:'hold',   label:'Zadržení (s)', type:'number', min:5, step:1, default:20 },
+          { id:'pause',  label:'Pauza (s)', type:'number', min:5, step:5, default:30 }
         ],
-        hint: 'V každém kole: ventilace (odpočinek) se zkracuje, zádrž dechu je konstantní.',
+        hint: 'Sekvence: nádech (fix), výdech vše ven (fix), zadržení (nastavitelné, výchozí 20 s), pauza (nastavitelná, výchozí 30 s).',
         buildTimeline(params){
-          const N   = Math.max(1, Math.floor(+params.rounds||8));
-          const v0  = Math.max(5, +params.ventStart||120);
-          const d   = Math.max(0, +params.ventDec||15);
-          const vMin= Math.max(5, +params.ventMin||30);
-          const hold= Math.max(5, +params.hold||90);
-          const steps=[]; const roundEnds=[]; let totalSec=0;
-          for(let i=0;i<N;i++){
-            const vent = Math.max(vMin, v0 - i*d);
-            steps.push({ label:`Ventilace`, type:'ventilate', dur:vent });
-            steps.push({ label:`Hold`, type:'hold', dur:hold });
-            roundEnds.push(steps.length-1);
-            totalSec += vent + hold;
+          const target = Math.max(1, Math.floor(+params.target||8));
+          const inh = Math.max(0.5, +params.inhale||2);
+          const exh = Math.max(1, +params.exhale||10);
+          const hold= Math.max(5, +params.hold||20);
+          const pause= Math.max(5, +params.pause||30);
+          const labels=['Nádech','Výdech vše ven','Zadržení','Pauza'];
+          const types =['inhale','exhale','hold','pause'];
+          const steps=[]; const cycleEnds=[];
+          for(let s=0;s<target;s++){
+            [inh,exh,hold,pause].forEach((dur,i)=>{ steps.push({ label: labels[i], type: types[i], dur }); });
+            cycleEnds.push(steps.length-1);
           }
-          return { steps, totalSec, meta:{ roundEnds, rounds:N } };
+          const totalSec = steps.reduce((a,b)=>a+b.dur,0);
+          return { steps, totalSec, meta:{ cycleEnds, target } };
         }
       },
       box: {
@@ -334,6 +334,7 @@
     function renderTimer(total){
       const tb = document.createElement('div'); tb.className='timebar';
       const inner = document.createElement('div'); inner.className='timebar-inner'; inner.id='timebarInner';
+      inner.style.width = '0%';
       tb.appendChild(inner);
       const txt = document.createElement('div'); txt.className='timebox'; txt.id='timebox'; txt.textContent = fmtTime(total);
       statusEl.appendChild(txt); statusEl.appendChild(tb);
@@ -366,7 +367,6 @@
       clearStatus();
       const ex = exercises[exId];
       if(ex.mode==='series'){
-        // prefer input with id 'target' if present; else 1
         const targetInp = document.getElementById('target');
         const target = targetInp ? Math.max(1, Math.floor(+targetInp.value||1)) : 1;
         renderSeriesDots(target);
@@ -375,7 +375,7 @@
         const total = (mins? +mins.value||5 : 5)*60;
         renderTimer(total);
       } else if(ex.mode==='table'){
-        const rounds = Math.max(1, Math.floor(+document.getElementById('rounds').value||8));
+        const rounds = Math.max(1, Math.floor(+document.getElementById('rounds')?.value||8));
         renderTableRounds(rounds);
       }
     }
@@ -383,10 +383,12 @@
     // --- Drawing / animation per step type
     function drawBar(step){
       const dur = `${Math.max(0.1, step.dur)}s`;
-      // reset geometry
-      bar.style.animation='none'; bar.style.transform='none';
+      // fully reset and force reflow so animations always restart
+      bar.style.animation='none';
+      bar.style.transform='none';
       bar.style.top='auto'; bar.style.bottom='auto'; bar.style.left='auto'; bar.style.right='auto';
       bar.style.width='4px'; bar.style.height='4px';
+      void bar.offsetWidth; // reflow to reliably restart CSS animation
 
       switch(step.type){
         case 'inhale': // bottom edge → right
@@ -403,6 +405,7 @@
           bar.style.animation=`growY ${dur} linear forwards`;
           break;
         case 'ventilate': // right edge ↑
+        case 'pause':
           bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
           bar.style.animation=`growY ${dur} linear forwards`;
           break;
@@ -462,7 +465,7 @@
       if(mode==='series'){
         renderSeriesDots(meta.target||1);
       } else if(mode==='timer'){
-        renderTimer(totalSec);
+        renderTimer(totalSec); updateTimerUI();
       } else if(mode==='table'){
         renderTableRounds(meta.rounds||1);
       }
