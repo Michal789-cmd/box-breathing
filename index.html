@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dechová cvičení – box / 4–7–8 / trojúhelník / koherentní</title>
+  <title>Dechová cvičení – volný rytmus / 4–2–6 / CO₂ hold / Box</title>
   <style>
     /* === Theme variables === */
     :root{
@@ -12,12 +12,14 @@
       --box-bg:#fff;
       --primary:#0077cc;
       --border-radius:12px;
+      --muted:#94a3b8;
     }
     body.dark{
       --bg:#111827;
       --fg:#e5e7eb;
       --box-bg:#1f2937;
       --primary:#3b82f6;
+      --muted:#64748b;
     }
 
     /* === Base layout === */
@@ -31,11 +33,11 @@
       align-items:center;
       justify-content:flex-start;
       min-height:100vh;
-      padding-top:1.5rem;
+      padding-top:1.25rem;
       box-sizing:border-box;
       transition:background .3s,color .3s;
     }
-    h1{margin:0 0 .75rem;text-align:center;line-height:1.2}
+    h1{margin:0 0 .5rem;text-align:center;line-height:1.2}
 
     /* === Tabs === */
     .tabs{display:flex;gap:.5rem;margin:.25rem 0 1rem;flex-wrap:wrap;justify-content:center}
@@ -44,23 +46,29 @@
     .tab[aria-selected="true"]{background:var(--primary);color:#fff}
 
     /* === Breathing box === */
-    .box{position:relative;width:220px;height:220px;border:4px solid var(--primary);border-radius:var(--border-radius);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s}
-    #stepText{font-size:1.5rem;font-weight:700;color:var(--primary);z-index:1;transition:color .3s}
-    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s}
+    .box{position:relative;width:240px;height:240px;border:4px solid var(--primary);border-radius:var(--border-radius);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s}
+    #stepText{font-size:1.5rem;font-weight:700;color:var(--primary);z-index:1;transition:color .3s;text-align:center;padding:0 .5rem}
+    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s;opacity:0.9}
 
     /* === Controls === */
-    .controls{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.7rem;justify-content:center}
-    .controls label{font-size:.95rem}
-    .controls input{width:4rem;padding:.3rem .4rem;font-size:1rem;border:1px solid #ccc;border-radius:4px;text-align:center;background:var(--box-bg);color:var(--fg)}
+    .controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin-bottom:.85rem;justify-content:center}
+    .control{display:flex;align-items:center;gap:.5rem}
+    .control label{font-size:.95rem}
+    .control input{width:5rem;padding:.35rem .45rem;font-size:1rem;border:1px solid #cbd5e1;border-radius:6px;text-align:center;background:var(--box-bg);color:var(--fg)}
+    .hint{font-size:.85rem;color:var(--muted);margin-top:-.3rem;margin-bottom:.5rem;text-align:center}
 
-    /* === Progress dots === */
-    .progress{display:flex;gap:.45rem;margin-bottom:1rem;flex-wrap:wrap;justify-content:center}
-    .dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--primary);transition:background .3s,border-color .3s}
+    /* === Progress / status === */
+    .status{min-height:28px;margin:.25rem 0 .75rem;display:flex;align-items:center;justify-content:center;gap:.6rem;flex-wrap:wrap}
+    .progress{display:flex;gap:.45rem;flex-wrap:wrap;justify-content:center}
+    .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--primary);transition:background .3s,border-color .3s}
     .dot.done{background:var(--primary)}
+    .timebox{font-variant-numeric:tabular-nums;font-weight:600}
+    .timebar{position:relative;width:260px;height:8px;border-radius:999px;background:#cbd5e1;overflow:hidden}
+    .timebar-inner{position:absolute;left:0;top:0;height:100%;width:0;background:var(--primary)}
 
     /* === Buttons === */
     .actions{display:flex;gap:.7rem;margin-bottom:2rem}
-    button{padding:.6rem 1.4rem;font-size:1rem;border:none;background:var(--primary);color:#fff;border-radius:6px;cursor:pointer;transition:background .3s}
+    button{padding:.6rem 1.4rem;font-size:1rem;border:none;background:var(--primary);color:#fff;border-radius:8px;cursor:pointer;transition:background .3s}
     button:disabled{opacity:.6;cursor:default}
 
     /* === Theme toggle === */
@@ -73,14 +81,12 @@
 
     /* === Mobile tweaks === */
     @media(max-width:480px){
-      .box{width:180px;height:180px}
-      #stepText{font-size:1.3rem}
-      button{padding:.5rem 1.1rem;font-size:.9rem}
-      .controls input{width:3.2rem;font-size:.9rem}
-      h1{font-size:1.25rem}
-      .theme-toggle{font-size:.8rem;gap:.35rem}
+      .box{width:200px;height:200px}
+      #stepText{font-size:1.25rem}
+      .control input{width:4.2rem;font-size:.95rem}
+      .timebar{width:220px}
+      h1{font-size:1.2rem}
     }
-    @media(max-height:600px){.theme-toggle{top:1rem;bottom:auto}}
 
     /* === Timer bar animations === */
     @keyframes growX{from{width:0}to{width:100%}}
@@ -90,12 +96,12 @@
 <body>
   <h1>Dechová cvičení</h1>
 
-  <!-- Přepínač cvičení jako karty -->
+  <!-- Tabs -->
   <div class="tabs" role="tablist" aria-label="Cvičení">
-    <button class="tab" role="tab" data-id="box" aria-selected="true">Box</button>
-    <button class="tab" role="tab" data-id="triangle" aria-selected="false">Trojúhelník</button>
-    <button class="tab" role="tab" data-id="478" aria-selected="false">4–7–8</button>
-    <button class="tab" role="tab" data-id="coherent" aria-selected="false">Koherentní</button>
+    <button class="tab" role="tab" data-id="free_timer" aria-selected="true">Volný rytmus (čas)</button>
+    <button class="tab" role="tab" data-id="relax_4_2_6" aria-selected="false">Relaxační 4–2–6</button>
+    <button class="tab" role="tab" data-id="co2_hold" aria-selected="false">CO₂ hold</button>
+    <button class="tab" role="tab" data-id="box" aria-selected="false">Box</button>
   </div>
 
   <div class="box">
@@ -103,14 +109,12 @@
     <div class="timer-bar" id="bar"></div>
   </div>
 
-  <div class="controls">
-    <label for="target">Cílové série:</label>
-    <input type="number" id="target" min="1" value="4" />
-    <label for="duration">Délka kroku (s):</label>
-    <input type="number" id="duration" min="1" step="0.1" value="4" />
-  </div>
+  <!-- Dynamic controls will render here -->
+  <div class="controls" id="controls"></div>
+  <div class="hint" id="hint"></div>
 
-  <div class="progress" id="progress"></div>
+  <!-- Status / progress -->
+  <div class="status" id="status"></div>
 
   <div class="actions">
     <button id="startBtn">Spustit</button>
@@ -125,60 +129,141 @@
 
   <script>
     // Elements
-    const stepText      = document.getElementById('stepText');
-    const bar           = document.getElementById('bar');
-    const startBtn      = document.getElementById('startBtn');
-    const resetBtn      = document.getElementById('resetBtn');
-    const progressDiv   = document.getElementById('progress');
-    const targetInput   = document.getElementById('target');
-    const durationInput = document.getElementById('duration');
-    const themeToggle   = document.getElementById('themeToggle');
-    const tabButtons    = document.querySelectorAll('.tab');
+    const stepText   = document.getElementById('stepText');
+    const bar        = document.getElementById('bar');
+    const controlsEl = document.getElementById('controls');
+    const hintEl     = document.getElementById('hint');
+    const statusEl   = document.getElementById('status');
+    const startBtn   = document.getElementById('startBtn');
+    const resetBtn   = document.getElementById('resetBtn');
+    const themeToggle= document.getElementById('themeToggle');
+    const tabButtons = document.querySelectorAll('.tab');
 
-    // Konfigurace cvičení (násobky se násobí hodnotou "Délka kroku")
+    // --- Beeps per type
+    const BEEP = { inhale:440, hold:520, exhale:392, ventilate:480 };
+
+    // --- Exercises config
     const exercises = {
+      free_timer: {
+        name: 'Volný rytmus (čas)',
+        mode: 'timer',
+        ui: [
+          { id:'inhale', label:'Nádech (s)', type:'number', min:0.5, step:0.1, default:4 },
+          { id:'exhale', label:'Výdech (s)', type:'number', min:0.5, step:0.1, default:4 },
+          { id:'minutes', label:'Doba cvičení (min)', type:'number', min:1, step:1, default:5 }
+        ],
+        hint: 'Střídá nádech a výdech až do vypršení zadané doby.',
+        buildTimeline(params){
+          const inh = Math.max(0.5, +params.inhale||4);
+          const exh = Math.max(0.5, +params.exhale||4);
+          const total = Math.max(1, +params.minutes||5) * 60;
+          const steps=[]; let t=0; let flip=true; // true=inhale, false=exhale
+          while(t < total - 1e-6){
+            const dur = Math.min(flip?inh:exh, total - t);
+            steps.push({ label: flip?'Nádech':'Výdech', type: flip?'inhale':'exhale', dur });
+            t += dur; flip = !flip;
+          }
+          return { steps, totalSec: total, meta: { } };
+        }
+      },
+      relax_4_2_6: {
+        name: 'Relaxační 4–2–6',
+        mode: 'series',
+        ui: [
+          { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 },
+          { id:'base', label:'Délka kroku (s)', type:'number', min:0.5, step:0.1, default:1 }
+        ],
+        hint: 'Sekvence 4× nádech, 2× zadrž, 6× výdech, opakovaně po počet sérií.',
+        buildTimeline(params){
+          const target = Math.max(1, Math.floor(+params.target||4));
+          const base = Math.max(0.5, +params.base||1);
+          const mult = [4,2,6];
+          const labels = ['Nádech','Zadrž dech','Výdech'];
+          const types  = ['inhale','hold','exhale'];
+          const steps=[]; const cycleEnds=[];
+          for(let s=0;s<target;s++){
+            for(let i=0;i<mult.length;i++){
+              steps.push({ label: labels[i], type: types[i], dur: mult[i]*base });
+            }
+            cycleEnds.push(steps.length-1); // index konce serie
+          }
+          const totalSec = steps.reduce((a,b)=>a+b.dur,0);
+          return { steps, totalSec, meta:{ cycleEnds, target } };
+        }
+      },
+      co2_hold: {
+        name: 'CO₂ hold',
+        mode: 'table',
+        ui: [
+          { id:'rounds',    label:'Kola', type:'number', min:1, step:1, default:8 },
+          { id:'ventStart', label:'Ventilace start (s)', type:'number', min:10, step:5, default:120 },
+          { id:'ventDec',   label:'Ventilace − krok (s)', type:'number', min:1, step:1, default:15 },
+          { id:'ventMin',   label:'Ventilace min (s)', type:'number', min:5, step:5, default:30 },
+          { id:'hold',      label:'Hold (s)', type:'number', min:10, step:5, default:90 }
+        ],
+        hint: 'V každém kole: ventilace (odpočinek) se zkracuje, zádrž dechu je konstantní.',
+        buildTimeline(params){
+          const N   = Math.max(1, Math.floor(+params.rounds||8));
+          const v0  = Math.max(5, +params.ventStart||120);
+          const d   = Math.max(0, +params.ventDec||15);
+          const vMin= Math.max(5, +params.ventMin||30);
+          const hold= Math.max(5, +params.hold||90);
+          const steps=[]; const roundEnds=[]; let totalSec=0;
+          for(let i=0;i<N;i++){
+            const vent = Math.max(vMin, v0 - i*d);
+            steps.push({ label:`Ventilace`, type:'ventilate', dur:vent });
+            steps.push({ label:`Hold`, type:'hold', dur:hold });
+            roundEnds.push(steps.length-1);
+            totalSec += vent + hold;
+          }
+          return { steps, totalSec, meta:{ roundEnds, rounds:N } };
+        }
+      },
       box: {
         name: 'Box',
-        phases: ['Nádech','Zadrž dech','Výdech','Zadrž dech'],
-        beep:   [440,523,392,523],
-        multipliers: [1,1,1,1]
-      },
-      triangle: {
-        name: 'Trojúhelník',
-        phases: ['Nádech','Zadrž dech','Výdech'],
-        beep:   [440,523,392],
-        multipliers: [1,1,1]
-      },
-      '478': {
-        name: '4–7–8',
-        phases: ['Nádech','Zadrž dech','Výdech'],
-        beep:   [440,523,392],
-        multipliers: [4,7,8] // 4×, 7×, 8× základní délky
-      },
-      coherent: {
-        name: 'Koherentní',
-        phases: ['Nádech','Výdech'],
-        beep:   [440,392],
-        multipliers: [1,1]   // doporučení: nastav 5–6 s jako základ
+        mode: 'series',
+        ui: [
+          { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 },
+          { id:'base', label:'Délka kroku (s)', type:'number', min:0.5, step:0.1, default:4 }
+        ],
+        hint: 'Klasický box: Nádech – Zadrž – Výdech – Zadrž (všechny fáze stejně dlouhé).',
+        buildTimeline(params){
+          const target = Math.max(1, Math.floor(+params.target||4));
+          const base = Math.max(0.5, +params.base||4);
+          const labels = ['Nádech','Zadrž dech','Výdech','Zadrž dech'];
+          const types  = ['inhale','hold','exhale','hold'];
+          const steps=[]; const cycleEnds=[];
+          for(let s=0;s<target;s++){
+            for(let i=0;i<labels.length;i++){
+              steps.push({ label: labels[i], type: types[i], dur: base });
+            }
+            cycleEnds.push(steps.length-1);
+          }
+          const totalSec = steps.reduce((a,b)=>a+b.dur,0);
+          return { steps, totalSec, meta:{ cycleEnds, target } };
+        }
       }
     };
 
-    // Aktivní cvičení
-    let exId = 'box';
-    let phases = exercises[exId].phases;
-    let beepFreq = exercises[exId].beep;
-    let multipliers = exercises[exId].multipliers;
+    // --- State
+    let exId = 'free_timer';
+    let timeline = []; // {label, type, dur}
+    let meta = {};     // extra indices etc.
+    let totalSec = 0;  // planned total
+    let stepIdx = -1;
+    let stepDeadline = 0; // epoch ms when step ends
+    let t0 = 0;           // epoch ms when session started
+    let timerId = null;
+    let tickId = null;    // UI ticker
+    let audioCtx = null;
 
-    // State
-    let index=0, completed=0, target=4, stepDuration=4, timeoutId=null, dots=[];
-    let audioCtx=null;
-
-    /* === Utility functions === */
+    // --- Audio beep
     function beep(freq, dur=200){
       try{
         if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
+        osc.type='sine';
         osc.frequency.value=freq;
         osc.connect(gain); gain.connect(audioCtx.destination);
         const t = audioCtx.currentTime;
@@ -187,9 +272,10 @@
         osc.start(t);
         gain.gain.exponentialRampToValueAtTime(0.0001,t+dur/1000);
         osc.stop(t+dur/1000+0.05);
-      }catch(e){ /* ignore */ }
+      }catch(e){}
     }
 
+    // --- Theme
     function applyTheme(initial=false){
       if(initial){
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -200,127 +286,235 @@
       }
     }
 
-    function buildDots(){
-      progressDiv.innerHTML='';
-      dots=[];
-      for(let i=0;i<target;i++){
-        const d=document.createElement('div'); d.className='dot'; progressDiv.appendChild(d); dots.push(d);
+    // --- Controls rendering
+    function renderControls(){
+      controlsEl.innerHTML='';
+      const { ui, hint } = exercises[exId];
+      ui.forEach(def=>{
+        const wrap = document.createElement('div'); wrap.className='control';
+        const lab = document.createElement('label'); lab.htmlFor = def.id; lab.textContent = def.label;
+        const inp = document.createElement('input');
+        inp.id=def.id; inp.type=def.type||'number';
+        if(def.min!=null) inp.min=def.min;
+        if(def.step!=null) inp.step=def.step;
+        inp.value = def.default;
+        wrap.appendChild(lab); wrap.appendChild(inp);
+        controlsEl.appendChild(wrap);
+      });
+      hintEl.textContent = hint || '';
+      renderStatusIdle();
+    }
+
+    function readParams(){
+      const p={};
+      (exercises[exId].ui||[]).forEach(def=>{
+        const el = document.getElementById(def.id);
+        if(!el) return;
+        p[def.id] = el.type==='number' ? +el.value : el.value;
+      });
+      return p;
+    }
+
+    // --- Status / Progress rendering
+    function clearStatus(){ statusEl.innerHTML=''; }
+
+    function renderSeriesDots(n){
+      const wrap = document.createElement('div'); wrap.className='progress';
+      for(let i=0;i<n;i++){
+        const d=document.createElement('div'); d.className='dot'; wrap.appendChild(d);
       }
-      completed=0;
+      statusEl.appendChild(wrap);
     }
 
-    function markDot(){ if(completed-1>=0 && completed-1<dots.length) dots[completed-1].classList.add('done'); }
-
-    function phaseDurationSec(){
-      const mult = multipliers[index % multipliers.length] || 1;
-      return stepDuration * mult;
+    function markSeriesProgress(completed){
+      const dots = statusEl.querySelectorAll('.dot');
+      dots.forEach((d,i)=>{ d.classList.toggle('done', i < completed); });
     }
 
-    function drawBar(){
-      const durSec = phaseDurationSec();
-      const dur = `${durSec}s`;
+    function renderTimer(total){
+      const tb = document.createElement('div'); tb.className='timebar';
+      const inner = document.createElement('div'); inner.className='timebar-inner'; inner.id='timebarInner';
+      tb.appendChild(inner);
+      const txt = document.createElement('div'); txt.className='timebox'; txt.id='timebox'; txt.textContent = fmtTime(total);
+      statusEl.appendChild(txt); statusEl.appendChild(tb);
+    }
 
+    function updateTimerUI(){
+      if(!t0 || !totalSec) return;
+      const now = Date.now();
+      const elapsed = Math.max(0, (now - t0)/1000);
+      const remain = Math.max(0, totalSec - elapsed);
+      const inner = document.getElementById('timebarInner');
+      const txt = document.getElementById('timebox');
+      if(inner){ inner.style.width = `${Math.min(100, (elapsed/totalSec)*100)}%`; }
+      if(txt){ txt.textContent = fmtTime(remain); }
+    }
+
+    function renderTableRounds(n){
+      const label = document.createElement('div'); label.className='timebox'; label.id='roundbox'; label.textContent = `Kolo 0/${n}`;
+      statusEl.appendChild(label);
+      renderSeriesDots(n);
+    }
+
+    function updateRoundUI(roundDone, rounds){
+      const box = document.getElementById('roundbox');
+      if(box) box.textContent = `Kolo ${Math.min(roundDone, rounds)}/${rounds}`;
+      markSeriesProgress(roundDone);
+    }
+
+    function renderStatusIdle(){
+      clearStatus();
+      const ex = exercises[exId];
+      if(ex.mode==='series'){
+        // prefer input with id 'target' if present; else 1
+        const targetInp = document.getElementById('target');
+        const target = targetInp ? Math.max(1, Math.floor(+targetInp.value||1)) : 1;
+        renderSeriesDots(target);
+      } else if(ex.mode==='timer'){
+        const mins = document.getElementById('minutes');
+        const total = (mins? +mins.value||5 : 5)*60;
+        renderTimer(total);
+      } else if(ex.mode==='table'){
+        const rounds = Math.max(1, Math.floor(+document.getElementById('rounds').value||8));
+        renderTableRounds(rounds);
+      }
+    }
+
+    // --- Drawing / animation per step type
+    function drawBar(step){
+      const dur = `${Math.max(0.1, step.dur)}s`;
+      // reset geometry
       bar.style.animation='none'; bar.style.transform='none';
       bar.style.top='auto'; bar.style.bottom='auto'; bar.style.left='auto'; bar.style.right='auto';
       bar.style.width='4px'; bar.style.height='4px';
 
-      // Vizuálně jedeme po stranách čtverce; mapování podle index % 4
-      switch(index % 4){
-        case 0:
-          bar.style.bottom='0'; bar.style.left='0';
-          bar.style.height='4px'; bar.style.width='0';
+      switch(step.type){
+        case 'inhale': // bottom edge → right
+          bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
           bar.style.animation=`growX ${dur} linear forwards`;
           break;
-        case 1:
-          bar.style.right='0'; bar.style.bottom='0';
-          bar.style.width='4px'; bar.style.height='0';
-          bar.style.animation=`growY ${dur} linear forwards`;
-          break;
-        case 2:
-          bar.style.top='0'; bar.style.right='0';
-          bar.style.height='4px'; bar.style.width='0';
+        case 'exhale': // top edge → left (mirror)
+          bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0';
           bar.style.transform='scaleX(-1)';
           bar.style.animation=`growX ${dur} linear forwards`;
           break;
-        case 3:
-          bar.style.left='0'; bar.style.top='0';
-          bar.style.width='4px'; bar.style.height='0';
+        case 'hold': // fill up inside (height from bottom)
+          bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='0';
+          bar.style.animation=`growY ${dur} linear forwards`;
+          break;
+        case 'ventilate': // right edge ↑
+          bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
           bar.style.animation=`growY ${dur} linear forwards`;
           break;
       }
     }
 
-    /* === Scheduling (proměnná délka fáze) === */
-    function clearTimer(){ if(timeoutId){ clearTimeout(timeoutId); timeoutId=null; } }
-
-    function scheduleNextPhase(){
-      clearTimer();
-      const ms = phaseDurationSec()*1000;
-      timeoutId = setTimeout(nextPhase, ms);
+    // --- Helpers
+    function fmtTime(sec){
+      sec = Math.max(0, Math.round(sec));
+      const m = Math.floor(sec/60).toString();
+      const s = (sec%60).toString().padStart(2,'0');
+      return `${m}:${s}`;
     }
 
-    /* === Cycle control === */
-    function nextPhase(){
-      index = (index+1) % phases.length;
-      stepText.textContent = phases[index];
-      drawBar(); beep(beepFreq[index % beepFreq.length]);
-      if(index===0){ completed++; markDot(); if(completed>=target) { stopCycle(); return; } }
-      scheduleNextPhase();
+    function scheduleNext(){
+      clearTimeout(timerId); timerId=null;
+      const step = timeline[stepIdx];
+      if(!step){ stopCycle(); return; }
+      stepDeadline = Date.now() + step.dur*1000;
+      stepText.textContent = step.label;
+      drawBar(step);
+      beep(BEEP[step.type]||440);
+      timerId = setTimeout(()=>{ advance(); }, step.dur*1000);
+    }
+
+    function advance(){
+      stepIdx++;
+      if(stepIdx >= timeline.length){ stopCycle(); return; }
+
+      // Update progress meta
+      const ex = exercises[exId];
+      if(ex.mode==='series' && meta.cycleEnds){
+        const done = meta.cycleEnds.filter(i => i < stepIdx).length;
+        markSeriesProgress(done);
+      }
+      if(ex.mode==='table' && meta.roundEnds){
+        const rounds = meta.rounds;
+        const done = meta.roundEnds.filter(i => i < stepIdx).length;
+        updateRoundUI(done, rounds);
+      }
+
+      scheduleNext();
     }
 
     function startCycle(){
-      target = parseInt(targetInput.value)||1;
-      stepDuration = Math.max(0.1, parseFloat(durationInput.value)||4);
-      buildDots();
-      index=0; completed=0;
-      stepText.textContent = phases[index];
-      drawBar(); beep(beepFreq[index % beepFreq.length]);
+      if(startBtn.disabled) return;
+      const { buildTimeline, mode } = exercises[exId];
+      const params = readParams();
+      const built = buildTimeline(params);
+      timeline = built.steps; totalSec = built.totalSec; meta = built.meta||{};
+      if(!timeline.length){ return; }
+      // Reset UI
+      stepIdx = 0; t0 = Date.now();
       startBtn.disabled=true;
-      scheduleNextPhase();
+      // Render status widgets for this run
+      clearStatus();
+      if(mode==='series'){
+        renderSeriesDots(meta.target||1);
+      } else if(mode==='timer'){
+        renderTimer(totalSec);
+      } else if(mode==='table'){
+        renderTableRounds(meta.rounds||1);
+      }
+      // First step
+      stepIdx = -1; advance();
+      // Ticker for time-based UIs
+      clearInterval(tickId);
+      if(mode!=='series'){
+        tickId = setInterval(updateTimerUI, 250);
+      }
     }
 
     function stopCycle(){
-      clearTimer();
+      clearTimeout(timerId); timerId=null;
+      clearInterval(tickId); tickId=null;
       bar.style.animation='none';
       stepText.textContent='Hotovo!';
       startBtn.disabled=false;
     }
 
     function resetCycle(){
-      clearTimer();
+      clearTimeout(timerId); timerId=null;
+      clearInterval(tickId); tickId=null;
       startBtn.disabled=false;
-      stepText.textContent='Připrav se';
       bar.style.animation='none';
-      buildDots(); index=0; completed=0;
+      stepText.textContent='Připrav se';
+      t0=0; stepIdx=-1; timeline=[]; meta={}; totalSec=0;
+      renderStatusIdle();
     }
 
-    /* === Přepínání cvičení (tabs) === */
+    // --- Tabs
     function setExercise(id){
       if(!exercises[id]) return;
       exId = id;
-      phases = exercises[id].phases;
-      beepFreq = exercises[id].beep;
-      multipliers = exercises[id].multipliers;
-
-      // UI: aktivní karta
-      tabButtons.forEach(btn=>{
-        const active = btn.dataset.id === id;
-        btn.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-
-      // Reset stavu (zachová uživatelský target/duration)
+      tabButtons.forEach(btn=>btn.setAttribute('aria-selected', btn.dataset.id===id ? 'true':'false'));
       resetCycle();
+      renderControls();
     }
 
-    /* === Initialisation === */
-    applyTheme(true); buildDots();
+    // --- Init
+    applyTheme(true);
+    renderControls();
+    renderStatusIdle();
 
-    /* === Event listeners === */
+    // --- Events
     themeToggle.addEventListener('change',()=>applyTheme());
     startBtn.addEventListener('click', startCycle);
     resetBtn.addEventListener('click', resetCycle);
-    targetInput.addEventListener('input',()=>{target=parseInt(targetInput.value)||1; buildDots();});
     tabButtons.forEach(btn=> btn.addEventListener('click', ()=> setExercise(btn.dataset.id)) );
+
+    // When inputs change, refresh idle status preview (time/dots)
+    controlsEl.addEventListener('input', ()=>{ if(!startBtn.disabled) renderStatusIdle(); });
   </script>
 </body>
 </html>
