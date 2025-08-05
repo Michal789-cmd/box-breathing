@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dechová cvičení</title>
+  <title>Dechová cvičení – volný rytmus / 4–2–6 / CO₂ hold / Box</title>
   <style>
     /* === Theme variables === */
     :root{
@@ -11,7 +11,7 @@
       --fg:#333;
       --box-bg:#fff;
       --primary:#0077cc;
-      --ink:#0a3d7a;          /* tmavší modrá pro text uprostřed */
+      --ink:#0a3d7a;          /* tmavší modrá pro text uprostřed ve světlém režimu */
       --border-radius:12px;
       --muted:#94a3b8;
     }
@@ -20,7 +20,7 @@
       --fg:#e5e7eb;
       --box-bg:#1f2937;
       --primary:#3b82f6;
-      --ink:#1e3a8a;          /* tmavší modrá i pro dark */
+      --ink:#dbeafe;          /* světlejší ink pro lepší kontrast na tmavém pozadí */
       --muted:#64748b;
     }
 
@@ -49,8 +49,13 @@
 
     /* === Breathing box === */
     .box{position:relative;width:240px;height:240px;border:4px solid var(--primary);border-radius:var(--border-radius);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s}
-    #stepText{font-size:1.5rem;font-weight:700;color:var(--ink);z-index:2;transition:color .3s;text-align:center;padding:0 .5rem}
-    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s;opacity:0.9}
+    #stepText{font-size:1.5rem;font-weight:700;color:var(--ink);z-index:2;transition:color .3s;text-align:center;padding:0 .5rem;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s;opacity:0.9;z-index:1}
+
+    /* SVG prstenec pro obvodový progres */
+    .ring{position:absolute;inset:0;pointer-events:none;z-index:1}
+    .ring svg{width:100%;height:100%;display:block}
+    .ring .path{fill:none;stroke:var(--primary);stroke-width:4px;stroke-linejoin:round;stroke-linecap:butt}
 
     /* === Controls === */
     .controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin-bottom:.85rem;justify-content:center}
@@ -95,17 +100,8 @@
     @keyframes growY{from{height:0}to{height:100%}}
     @keyframes shrinkY{from{height:100%}to{height:0}}
 
-    /* Pauza: oběh po obvodu čtverce */
-    @keyframes perimeter{
-      0%   {left:0;   bottom:0; top:auto; right:auto; width:0;    height:4px; transform:none}
-      25%  {left:0;   bottom:0;               width:100%; height:4px;}
-      25.01%{right:0; bottom:0; left:auto;    width:4px;  height:0;}
-      50%  {right:0;  bottom:0;               width:4px;  height:100%;}
-      50.01%{right:0; top:0; bottom:auto;     width:0;    height:4px; transform:scaleX(-1)}
-      75%  {right:0;  top:0;                  width:100%; height:4px;}
-      75.01%{left:0;  top:0; right:auto;      width:4px;  height:0; transform:none}
-      100% {left:0;   top:0;                  width:4px;  height:100%;}
-    }
+    /* Pro SVG prstenec – animace dash (z aktuální hodnoty na 0) */
+    @keyframes dash{to{stroke-dashoffset:0}}
   </style>
 </head>
 <body>
@@ -122,6 +118,13 @@
   <div class="box">
     <span id="stepText" aria-live="polite" role="status">Připrav se</span>
     <div class="timer-bar" id="bar"></div>
+    <!-- SVG prstenec pro obvodovou animaci (pauza CO2 a speciální režimy) -->
+    <div class="ring" id="ring" aria-hidden="true">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <!-- start v levém spodním rohu, směr doprava a dokola (M x y) -->
+        <path id="ringPath" class="path" d="M2 98 H98 V2 H2 V98"/>
+      </svg>
+    </div>
   </div>
 
   <!-- Dynamic controls will render here -->
@@ -146,6 +149,8 @@
     // Elements
     const stepText   = document.getElementById('stepText');
     const bar        = document.getElementById('bar');
+    const ring       = document.getElementById('ring');
+    const ringPath   = document.getElementById('ringPath');
     const controlsEl = document.getElementById('controls');
     const hintEl     = document.getElementById('hint');
     const statusEl   = document.getElementById('status');
@@ -214,7 +219,7 @@
           { id:'hold',   label:'Zadržení (s)', type:'number', min:5, step:1, default:20 },
           { id:'pause',  label:'Pauza (s)', type:'number', min:5, step:5, default:30 }
         ],
-        hint: 'Sekvence: nádech (fix), výdech vše ven (fix), zadržení (nast.), pauza (nast., progress po obvodu).',
+        hint: 'Sekvence: nádech (fix), výdech vše ven (fix), zadržení (nast.), pauza (nast., progres po obvodu).',
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||8));
           const inh = Math.max(0.5, +params.inhale||3);
@@ -239,7 +244,7 @@
           { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 },
           { id:'base', label:'Délka kroku (s)', type:'number', min:0.5, step:0.1, default:4 }
         ],
-        hint: 'Klasický box: Nádech – Zadrž – Výdech – Zadrž (všechny fáze stejně dlouhé).',
+        hint: 'Klasický box: Nádech – Zadrž – Výdech – Zadrž (všechny fáze stejně dlouhé). Animace po obvodu (každá fáze jedna hrana).',
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||4));
           const base = Math.max(0.5, +params.base||4);
@@ -393,16 +398,69 @@
       }
     }
 
+    // --- SVG ring helpers ---
+    function hideRing(){
+      ringPath.style.animation='none';
+      // reset dash so next run starts from full perimeter
+      const length = ringPath.getTotalLength();
+      ringPath.style.strokeDasharray = length;
+      ringPath.style.strokeDashoffset = length;
+      ring.style.opacity = 0;
+    }
+    function drawRing(durationSec){
+      const length = ringPath.getTotalLength();
+      ringPath.style.animation='none';
+      ringPath.style.strokeDasharray = length;
+      ringPath.style.strokeDashoffset = length;
+      // force reflow
+      ringPath.getBoundingClientRect();
+      ringPath.style.animation = `dash ${Math.max(0.1,durationSec)}s linear forwards`;
+      ring.style.opacity = 1;
+    }
+
     // --- Drawing / animation per step type
     function drawBar(step){
-      const dur = `${Math.max(0.1, step.dur)}s`;
+      const durSec = Math.max(0.1, step.dur);
+      const dur = `${durSec}s`;
+
+      // default: hide ring
+      hideRing();
+
       // fully reset and force reflow so animations always restart
       bar.style.animation='none';
       bar.style.transform='none';
       bar.style.top='auto'; bar.style.bottom='auto'; bar.style.left='auto'; bar.style.right='auto';
       bar.style.width='4px'; bar.style.height='4px';
-      void bar.offsetWidth; // reflow to reliably restart CSS animation
+      void bar.offsetWidth; // reflow
 
+      // Special layout for BOX: každá fáze = jedna hrana obvodu
+      if(exId==='box'){
+        const seg = stepIdx % 4; // 0 inhale, 1 hold, 2 exhale, 3 hold
+        switch(seg){
+          case 0: // spodní hrana → doprava
+            bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
+            bar.style.animation=`growX ${dur} linear forwards`; break;
+          case 1: // pravá hrana ↑
+            bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
+            bar.style.animation=`growY ${dur} linear forwards`; break;
+          case 2: // horní hrana ←
+            bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0';
+            bar.style.transform='scaleX(-1)';
+            bar.style.animation=`growX ${dur} linear forwards`; break;
+          case 3: // levá hrana ↓
+            bar.style.top='0'; bar.style.left='0'; bar.style.width='4px'; bar.style.height='0';
+            bar.style.animation=`growY ${dur} linear forwards`; break;
+        }
+        return;
+      }
+
+      // CO2: pauza = prstenec po obvodu od levého spodního rohu
+      if(exId==='co2_hold' && step.type==='pause'){
+        drawRing(durSec);
+        return;
+      }
+
+      // Ostatní režimy podle typu kroku
       switch(step.type){
         case 'inhale': {
           if(exId==='free_timer'){
@@ -437,8 +495,9 @@
           bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
           bar.style.animation=`growY ${dur} linear forwards`;
           break;
-        case 'pause': // obvod čtverce
-          bar.style.animation=`perimeter ${dur} linear forwards`;
+        case 'pause': // fallback, kdyby nebyl CO2 režim
+          bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
+          bar.style.animation=`growX ${dur} linear forwards`;
           break;
       }
     }
@@ -513,6 +572,7 @@
       clearTimeout(timerId); timerId=null;
       clearInterval(tickId); tickId=null;
       bar.style.animation='none';
+      hideRing();
       stepText.textContent='Hotovo!';
       startBtn.disabled=false;
     }
@@ -522,6 +582,7 @@
       clearInterval(tickId); tickId=null;
       startBtn.disabled=false;
       bar.style.animation='none';
+      hideRing();
       stepText.textContent='Připrav se';
       t0=0; stepIdx=-1; timeline=[]; meta={}; totalSec=0;
       renderStatusIdle();
