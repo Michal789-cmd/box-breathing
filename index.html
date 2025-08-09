@@ -9,9 +9,9 @@
   :root{
     --bg:#ffffff;                /* pevné bílé pozadí v light */
     --fg:#1f2937;
-    --box-bg:#ffffff;            /* FIX: světlý box i ovládací prvky */
+    --box-bg:#0b1220;
     --primary:#0a7bd6;
-    --ink:#0a3d7a;
+    --ink:#dbeafe;
     --radius:14px;
     --muted:#64748b;
 
@@ -28,7 +28,6 @@
     --tabs-bg:rgba(255,255,255,.55);
     --tab-inactive-bg:rgba(255,255,255,.28);
     --tab-inactive-fg:#0b1b2e;
-    --tabs-fade-to: rgba(0,0,0,.35); /* FIX: kontrast fade v light */
 
     --field-bg:#ffffff;
     --field-border:#cbd5e1;
@@ -59,7 +58,6 @@
     --tabs-bg:rgba(15,23,42,.55);
     --tab-inactive-bg:rgba(255,255,255,.10);
     --tab-inactive-fg:#cbd5e1;
-    --tabs-fade-to: rgba(255,255,255,.40); /* FIX: fade v dark */
 
     --field-bg:#0b1220;
     --field-border:#3a4a62;
@@ -93,17 +91,13 @@
   body.dim .bg-anim { opacity: .28 !important; }
 
   /* === Tabs scroller + fades === */
-  .tabs-wrap{position:relative;width:min(1000px,95vw); margin:0 auto}
+  .tabs-wrap{position:relative;width:min(1000px,95vw)}
   .tabs{
     display:flex; gap:.4rem; padding:.35rem; border-radius:999px;
     background:var(--tabs-bg); border:1px solid var(--glass-border);
     -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     overflow-x:auto; scroll-behavior:smooth; white-space:nowrap;
-    justify-content:flex-start;            /* default = vlevo (scroll) */
-    z-index:1;
   }
-  .tabs.center{ justify-content:center; } /* FIX: centrování na desktopu, když není overflow */
-
   .tab{
     padding:.45rem 1rem; border-radius:999px; border:1px solid transparent;
     background:var(--tab-inactive-bg); color:var(--tab-inactive-fg);
@@ -115,24 +109,20 @@
     box-shadow:0 2px 10px rgba(2,8,23,.18), inset 0 0 0 1px rgba(255,255,255,.18);
   }
   .tab:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
-
   .tabs-fade{
-    position:absolute; top:0; bottom:0; width:28px; pointer-events:none;
-    opacity:0; transition:opacity .2s; z-index:2; /* FIX: nad tabs */
-    background:linear-gradient(to right, rgba(0,0,0,0), var(--tabs-fade-to));
+    position:absolute; top:0; bottom:0; width:28px; pointer-events:none; opacity:0; transition:opacity .2s;
+    background:linear-gradient(to right, rgba(0,0,0,.0), rgba(0,0,0,.25));
     border-radius:999px;
   }
-  .tabs-fade.left{ left:0; transform:scaleX(-1); }
-  .tabs-fade.right{ right:0; }
+  .tabs-fade.left{ left:-2px; transform:scaleX(-1); }
+  .tabs-fade.right{ right:-2px; }
   .tabs-fade.show{ opacity:.65; }
-
-  /* Hint pod kartami (jen šipka) */
   .tabs-hint{
-    font-size:1.15rem; line-height:1; margin:.25rem 6px 0;
-    color:var(--muted); text-align:right; opacity:0; transition:opacity .3s;
-    user-select:none; pointer-events:none;
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    font-size:.8rem; color:#fff; background:rgba(0,0,0,.35);
+    padding:.15rem .45rem; border-radius:999px; pointer-events:none; opacity:0; transition:opacity .3s;
   }
-  .tabs-hint.show{ opacity:1; }
+  .tabs-hint.show{opacity:1}
 
   /* === Info card === */
   .info-card{
@@ -148,6 +138,7 @@
   .info-actions{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
   .link-btn{background:var(--btn-pill-bg);border:1px solid var(--primary);color:var(--fg);
     padding:.28rem .8rem;border-radius:999px;cursor:pointer;font-size:.92rem;font-weight:600}
+
   .info-details{display:none;margin-top:.5rem}
   .info-details.show{display:block}
   .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem}
@@ -275,8 +266,8 @@
       </div>
       <div class="tabs-fade left"  id="fadeL" aria-hidden="true"></div>
       <div class="tabs-fade right" id="fadeR" aria-hidden="true"></div>
+      <div class="tabs-hint" id="tabsHint" aria-hidden="true">Posuň →</div>
     </div>
-    <div class="tabs-hint" id="tabsHint" aria-hidden="true">⇢</div>
 
     <!-- Info card -->
     <section class="info-card" id="infoCard">
@@ -341,7 +332,7 @@
         <div class="slide">
           <p><b>Jak začít</b></p>
           <ol>
-            <li>Vyber cvičení nahoře (přejeď prstem v kartách).</li>
+            <li>Vyber cvičení nahoře (přejeď prstem pro více možností).</li>
             <li>Nastav délky/počet sérií podle sebe.</li>
             <li>Stiskni <b>Start</b> a řiď se animací.</li>
           </ol>
@@ -424,7 +415,7 @@ const ls = {
   load(k,f){ try{ const v=localStorage.getItem(LS_PREFIX+k); return v?JSON.parse(v):f; }catch(e){ return f; } }
 };
 
-/* ======= Info copy (zkráceno) ======= */
+/* ======= Info copy per exercise (zkráceno kvůli prostoru) ======= */
 const INFO = {
   free_timer:{title:'Volná vlna',sub:'Nastav si rytmus a plynule dýchej.',brief:'Zpomal, slaď nádech s výdechem a srovnej hlavu.',
     blocks:[{h:'Co to je',items:['Střídání nádechu a výdechu v tempu, které si nastavíš.','Běží po dobu, kterou zvolíš.']},
@@ -455,7 +446,7 @@ const INFO = {
             {h:'Proč',items:['Plná kontrola nad tempem.']} ]}
 };
 
-/* ======= Exercises (jako dřív) ======= */
+/* ======= Exercises (shodné jako dřív, zkráceně) ======= */
 const exercises = {
   free_timer:{ mode:'timer',
     ui:[{id:'inhale',label:'Nádech (s)',type:'number',min:.5,step:.1,default:4},
@@ -539,9 +530,6 @@ function gradientForPhase(phase){
   return `radial-gradient(55% 55% at 40% 35%, ${c} 0%, ${c} 35%, transparent 75%),
           radial-gradient(45% 45% at 70% 65%, ${c} 0%, transparent 70%)`;
 }
-const bgA = document.getElementById('bgA');
-const bgB = document.getElementById('bgB');
-let activeBg = bgA;
 function fadeBgToPhase(phase, instant=false){
   const target = (activeBg===bgA)? bgB : bgA;
   const opa = parseFloat(getComputedStyle(document.body).getPropertyValue('--bg-opa')) || 0.8;
@@ -555,8 +543,9 @@ function fadeBgToPhase(phase, instant=false){
 
 /* ======= Controls & custom builder ======= */
 let customSteps = ls.load('custom_steps', [{type:'inhale',dur:4},{type:'hold',dur:2},{type:'exhale',dur:4}]);
+
 function getCustomSteps(){ return customSteps; }
-function renderCustomRows(){ /* jako dřív, pro stručnost nekomentuji */ }
+function renderCustomRows(){ /* (stejná logika jako dřív, vynechávám kvůli délce) */ }
 
 function renderControls(){
   controlsEl.innerHTML='';
@@ -566,7 +555,6 @@ function renderControls(){
     top.innerHTML=`<div class="control"><label for="loops">Opakování</label>
       <input id="loops" type="number" min="1" step="1" value="${ls.load('custom_loops',3)}" inputmode="numeric"></div>`;
     controlsEl.appendChild(top);
-
     const list=document.createElement('div'); list.id='customList'; list.className='row'; controlsEl.appendChild(list);
     renderCustomRows = function(){
       list.innerHTML='';
@@ -740,7 +728,7 @@ function resumeCycle(){
   if(exercises[exId].mode!=='series'){ tickId=setInterval(updateTimerUI,250); }
 }
 
-/* ======= Tabs logic + fades (bez swipe) ======= */
+/* ======= Tabs logic + fades + swipe ======= */
 function setExercise(id){
   if(!exercises[id]) return; exId=id; ls.save('last_tab',id);
   tabButtons.forEach(b=> b.setAttribute('aria-selected', b.dataset.id===id ? 'true':'false'));
@@ -749,17 +737,37 @@ function setExercise(id){
 }
 function updateTabFades(){
   const sc = tabsEl;
-  const hasOverflow = sc.scrollWidth > sc.clientWidth + 1;
-  sc.classList.toggle('center', !hasOverflow);   /* FIX: centrování na desktopu */
   const hasLeft = sc.scrollLeft > 1;
   const hasRight = sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 1;
-  fadeL.classList.toggle('show', hasOverflow && hasLeft);
-  fadeR.classList.toggle('show', hasOverflow && hasRight);
-  const isMobile = window.innerWidth <= 820;
-  tabsHint.classList.toggle('show', isMobile && hasOverflow && !hasLeft && hasRight);
+  fadeL.classList.toggle('show', hasLeft);
+  fadeR.classList.toggle('show', hasRight);
+  tabsHint.classList.toggle('show', !hasLeft && hasRight);
 }
 tabsEl.addEventListener('scroll', updateTabFades, {passive:true});
 window.addEventListener('resize', updateTabFades);
+
+let touchStartX=0, touchStartY=0, swiping=false;
+function onTouchStart(e){
+  if(e.target.closest('.tabs, .controls, .info-card, .modal')) return; // nechytej gesta při interakci
+  if(window.innerWidth>820) return;
+  touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY; swiping=true;
+}
+function onTouchMove(e){
+  if(!swiping) return;
+  const dx=e.touches[0].clientX-touchStartX, dy=e.touches[0].clientY-touchStartY;
+  if(Math.abs(dy)>30) swiping=false; // vertikál přebije
+}
+function onTouchEnd(e){
+  if(!swiping) return; swiping=false;
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  if(Math.abs(dx)<50) return;
+  const idx=EX_ORDER.indexOf(exId);
+  if(dx<0 && idx<EX_ORDER.length-1) setExercise(EX_ORDER[idx+1]);
+  if(dx>0 && idx>0) setExercise(EX_ORDER[idx-1]);
+}
+document.addEventListener('touchstart', onTouchStart, {passive:true});
+document.addEventListener('touchmove', onTouchMove, {passive:true});
+document.addEventListener('touchend', onTouchEnd, {passive:true});
 
 /* ======= Theme & init ======= */
 function applyTheme(initial=false){
@@ -784,16 +792,16 @@ function renderDots(){ dotsEl.innerHTML=''; slides.forEach((_,i)=>{ const b=docu
 function showSlide(i){
   slideIdx=Math.max(0,Math.min(i,slides.length-1));
   slides.forEach((s,idx)=> s.classList.toggle('show', idx===slideIdx));
-  document.getElementById('prevBtn').disabled = slideIdx===0;
-  document.getElementById('nextBtn').textContent = slideIdx===slides.length-1 ? 'Hotovo' : 'Další';
+  prevBtn.disabled = slideIdx===0;
+  nextBtn.textContent = slideIdx===slides.length-1 ? 'Hotovo' : 'Další';
   renderDots();
 }
 function openWelcome(){ document.body.classList.add('onboard'); welcomeModal.classList.add('show'); showSlide(0); }
 function closeWelcome(){ welcomeModal.classList.remove('show'); document.body.classList.remove('onboard'); ls.save(ONB_KEY,true); }
-document.getElementById('nextBtn').onclick = ()=>{ if(slideIdx===slides.length-1) closeWelcome(); else showSlide(slideIdx+1); };
-document.getElementById('prevBtn').onclick = ()=> showSlide(slideIdx-1);
-document.getElementById('skipBtn').onclick = closeWelcome;
-document.getElementById('helpLink').addEventListener('click',(e)=>{ e.preventDefault(); openWelcome(); });
+nextBtn.onclick = ()=>{ if(slideIdx===slides.length-1) closeWelcome(); else showSlide(slideIdx+1); };
+prevBtn.onclick = ()=> showSlide(slideIdx-1);
+skipBtn.onclick = closeWelcome;
+helpLink.addEventListener('click',(e)=>{ e.preventDefault(); openWelcome(); });
 
 /* ======= Init ======= */
 applyTheme(true);
