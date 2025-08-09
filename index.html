@@ -90,14 +90,29 @@
   body.dark .bg-anim{ mix-blend-mode:screen; }
   body.dim .bg-anim { opacity: .28 !important; }
 
-  /* === Tabs scroller + fades === */
-  .tabs-wrap{position:relative;width:min(1000px,95vw); margin:0 auto; padding-bottom:1.2rem;} /* FIX: centrum + místo pro hint */
+   /* === Tabs scroller + fades === */
+.tabs-wrap{position:relative;width:min(1000px,95vw); margin:0 auto; padding-bottom:1.2rem;} /* FIX: centrum + místo pro hint */
+.tabs{
+  display:flex;
+  gap:.4rem;
+  padding:.35rem;
+  border-radius:999px;
+  background:var(--tabs-bg);
+  border:1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  white-space:nowrap;
+  justify-content:center; /* centrování na PC */
+}
+
+/* na mobilech vrátíme scroll */
+@media (max-width: 768px){
   .tabs{
-    display:flex; gap:.4rem; padding:.35rem; border-radius:999px;
-    background:var(--tabs-bg); border:1px solid var(--glass-border);
-    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    overflow-x:auto; scroll-behavior:smooth; white-space:nowrap;
+    overflow-x:auto;
+    justify-content:flex-start;
+    scroll-behavior:smooth;
   }
+}
   .tab{
     padding:.45rem 1rem; border-radius:999px; border:1px solid transparent;
     background:var(--tab-inactive-bg); color:var(--tab-inactive-fg);
