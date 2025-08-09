@@ -120,9 +120,10 @@
   body.dark .tabs-fade{
     background:linear-gradient(to right, rgba(0,0,0,0) 0%, #000 90%);
   }
-  .tabs-fade.left{ left:-2px; transform:scaleX(-1); }
-  .tabs-fade.right{ right:-2px; }
-  .tabs-fade.show{ opacity:1; }
+.tabs-fade.left{ display:none !important; }  /* vypnuto vlevo */
+.tabs-fade.right{ right:-2px; }
+.tabs-fade.show{ opacity:1; }
+
 
   /* FIX: hint jen šipka a pod záložkami, aby nic nepřekrývala */
   .tabs-hint{
