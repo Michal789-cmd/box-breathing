@@ -2,324 +2,713 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dechová cvičení – volný rytmus / 4–2–6 / CO₂ hold / Box</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DECH(ovka) – Volná vlna / Klid 4–2–6 / CO₂ Reset / Čtverec klidu / Energické cykly / Vlastní režim</title>
   <style>
     /* === Theme variables === */
     :root{
-      --bg:#f0f4f8;
-      --fg:#333;
+      /* base backgrounds: WHITE; phase colors: hold = green overlay */
+      --bg:#ffffff;                /* pevné bílé pozadí ve světlém režimu */
+      --fg:#1f2937;
       --box-bg:#fff;
-      --primary:#0077cc;
-      --ink:#0a3d7a;          /* tmavší modrá pro text uprostřed ve světlém režimu */
-      --border-radius:12px;
-      --muted:#94a3b8;
+      --primary:#0a7bd6;
+      --ink:#0a3d7a;
+      --radius:14px;
+      --muted:#64748b;
+
+      /* animated background colors + opacity */
+      --bg-inhale:#e0f2fe;
+      --bg-exhale:#ffe4e6;
+      --bg-hold:#ecfccb;           /* zelená pro „zadržení“ (overlay) */
+      --bg-pause:#f5f3ff;
+      --bg-opa:.8;
+
+      /* glass */
+      --glass-bg:rgba(255,255,255,.16);
+      --glass-border:rgba(255,255,255,.35);
+      --glass-shadow:rgba(2,8,23,.12);
+
+      /* tabs */
+      --tabs-bg:rgba(255,255,255,.55);
+      --tab-inactive-bg:rgba(255,255,255,.28);
+      --tab-inactive-fg:#0b1b2e;
+
+      /* inputs/buttons */
+      --field-bg:#ffffff;
+      --field-border:#cbd5e1;
+      --label:#475569;
+      --focus:#60a5fa;
+
+      /* outlined/tinted backgrounds (light) */
+      --btn-outline-bg: rgba(10,123,214,.08);
+      --btn-pill-bg:    rgba(10,123,214,.10);
     }
     body.dark{
-      --bg:#111827;
+      /* base backgrounds: BLACK; phase colors: hold = zelená overlay */
+      --bg:#000000;                /* pevné černé pozadí v tmavém režimu */
       --fg:#e5e7eb;
-      --box-bg:#1f2937;
+      --box-bg:#111827;
       --primary:#3b82f6;
-      --ink:#dbeafe;          /* světlejší ink pro lepší kontrast na tmavém pozadí */
-      --muted:#64748b;
+      --ink:#dbeafe;
+      --muted:#a7b4c8;
+
+      --bg-inhale:#2b7be4;
+      --bg-exhale:#e24f76;
+      --bg-hold:#3fbf6b;           /* sytější zelená pro „zadržení“ */
+      --bg-pause:#9b7df4;
+      --bg-opa:1;
+
+      --glass-bg:rgba(17,24,39,.50);        /* vyšší opacita kvůli čitelnosti */
+      --glass-border:rgba(148,163,184,.30);
+      --glass-shadow:rgba(0,0,0,.40);
+
+      --tabs-bg:rgba(15,23,42,.55);
+      --tab-inactive-bg:rgba(255,255,255,.10);
+      --tab-inactive-fg:#cbd5e1;
+
+      --field-bg:#0b1220;
+      --field-border:#3a4a62;
+      --label:#cbd5e1;
+      --focus:#60a5fa;
+
+      /* outlined/tinted backgrounds (dark) – silnější, ať je to čitelné */
+      --btn-outline-bg: rgba(59,130,246,.22);
+      --btn-pill-bg:    rgba(59,130,246,.24);
     }
 
-    /* === Base layout === */
+    /* === Base === */
+    * { box-sizing: border-box; }
     body{
-      font-family:system-ui,sans-serif;
+      font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background:var(--bg);
       color:var(--fg);
       margin:0;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-start;
       min-height:100vh;
-      padding-top:1.25rem;
-      box-sizing:border-box;
-      transition:background .3s,color .3s;
+      transition:background .5s ease, color .3s ease;
+      overflow-x:hidden;
     }
-    h1{margin:0 0 .5rem;text-align:center;line-height:1.2}
+    .wrap{display:flex;flex-direction:column;align-items:center;gap:.9rem;padding:1.25rem}
+    body.onboard .wrap{ filter: blur(8px) saturate(.9); pointer-events:none; }
+    h1{margin:0 0 .25rem;text-align:center}
 
-    /* === Tabs === */
-    .tabs{display:flex;gap:.5rem;margin:.25rem 0 1rem;flex-wrap:wrap;justify-content:center}
-    .tab{padding:.35rem .8rem;border:2px solid var(--primary);background:transparent;color:var(--primary);
-         border-radius:999px;cursor:pointer;font-size:.95rem}
-    .tab[aria-selected="true"]{background:var(--primary);color:#fff}
+    /* === Animated background (dual layers with crossfade) === */
+    .bg-anim{
+      position:fixed; inset:0; z-index:-1; pointer-events:none;
+      filter:blur(50px);
+      opacity:0;
+      transition:opacity 600ms ease-in-out, transform 12s ease-in-out;
+      will-change:opacity, transform;
+    }
+    .bg-anim.float{ animation:float 16s ease-in-out infinite alternate; }
+    @keyframes float{ from{transform:scale(1)} to{transform:scale(1.04)} }
+    body.dark .bg-anim{ mix-blend-mode:screen; }
+    body.dim .bg-anim { opacity: .28 !important; } /* ztlumit při rozbaleném info */
+
+    /* === Tabs – segmented control (vysoký kontrast v dark) === */
+    .tabs{
+      display:flex; gap:.4rem; padding:.35rem; border-radius:999px;
+      background:var(--tabs-bg); border:1px solid var(--glass-border);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      max-width:min(1000px, 95vw); overflow:auto; white-space:nowrap;
+    }
+    .tab{
+      padding:.45rem 1rem; border-radius:999px; border:1px solid transparent;
+      background:var(--tab-inactive-bg); color:var(--tab-inactive-fg); cursor:pointer; font-size:.95rem;
+      transition:background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+      font-weight:600;
+    }
+    .tab[aria-selected="true"]{
+      background:var(--primary); color:#fff; border-color:rgba(0,0,0,0);
+      box-shadow:0 2px 10px rgba(2,8,23,.18), inset 0 0 0 1px rgba(255,255,255,.18);
+      font-weight:800;
+    }
+    .tab:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+    /* === Glass info card (short banner + expandable) === */
+    .info-card{
+      position:relative; width:min(920px, 95vw);
+      padding:.9rem 1rem .8rem; border-radius:16px;
+      background:var(--glass-bg); border:1px solid var(--glass-border);
+      box-shadow:0 8px 24px var(--glass-shadow);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+    .info-header{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;justify-content:center}
+    .info-title{font-weight:800;letter-spacing:.2px}
+    .info-sub{color:var(--muted);font-size:.95rem}
+    .info-brief{margin:.45rem auto .35rem;max-width:70ch;text-align:center;line-height:1.35}
+    .info-actions{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+    .link-btn{
+      background:var(--btn-pill-bg);
+      border:1px solid var(--primary);
+      color:var(--fg);
+      padding:.28rem .8rem;border-radius:999px;cursor:pointer;font-size:.92rem;font-weight:600
+    }
+    .link-btn:hover{opacity:.95}
+    .info-details{display:none;margin-top:.5rem}
+    .info-details.show{display:block}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem}
+    .info-block{background:rgba(255,255,255,.06);border:1px dashed var(--glass-border);border-radius:12px;padding:.6rem .7rem}
+    body.dark .info-block{background:rgba(0,0,0,.15)}
+    .info-block h4{margin:.1rem 0 .35rem;font-size:1rem}
+    .info-list{margin:.1rem 0 .1rem;padding-left:1.1rem}
 
     /* === Breathing box === */
-    .box{position:relative;width:240px;height:240px;border:4px solid var(--primary);border-radius:var(--border-radius);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s}
-    #stepText{font-size:1.5rem;font-weight:700;color:var(--ink);z-index:2;transition:color .3s;text-align:center;padding:0 .5rem;text-shadow:0 1px 2px rgba(0,0,0,.6)}
-    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;transition:background .3s;opacity:0.9;z-index:1}
-
-    /* SVG prstenec pro obvodový progres */
-    .ring{position:absolute;inset:0;pointer-events:none;z-index:1}
+    .box{
+      position:relative;width:280px;height:280px;border:4px solid var(--primary);
+      border-radius:var(--radius);display:flex;align-items:center;justify-content:center;
+      margin:.6rem 0 .2rem;overflow:hidden;background:var(--box-bg);transition:background .3s,border-color .3s
+    }
+    #stepText{
+      font-size:1.5rem;font-weight:800;color:var(--ink);z-index:3;transition:color .3s;
+      text-align:center;padding:0 .5rem;text-shadow:0 1px 2px rgba(0,0,0,.45)
+    }
+    .timer-bar{position:absolute;background:var(--primary);pointer-events:none;opacity:.9;z-index:1}
+    .ring{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0}
     .ring svg{width:100%;height:100%;display:block}
     .ring .path{fill:none;stroke:var(--primary);stroke-width:4px;stroke-linejoin:round;stroke-linecap:butt}
 
-    /* === Controls === */
-    .controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin-bottom:.85rem;justify-content:center}
-    .control{display:flex;align-items:center;gap:.5rem}
-    .control label{font-size:.95rem}
-    .control input{width:5rem;padding:.35rem .45rem;font-size:1rem;border:1px solid #cbd5e1;border-radius:6px;text-align:center;background:var(--box-bg);color:var(--fg)}
-    .hint{font-size:.85rem;color:var(--muted);margin-top:-.3rem;margin-bottom:.5rem;text-align:center}
+    /* === Controls (unified inputs) === */
+    .controls{display:flex;flex-direction:column;align-items:center;gap:.55rem;margin:.5rem 0 .35rem}
+    .row{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;justify-content:center}
+    .control{display:flex;flex-direction:column;align-items:flex-start;gap:.35rem; min-width: 160px;}
+    .control label{font-size:.92rem;color:var(--label)}
+    .control input, .control select{
+      width:180px; height:44px; padding:.35rem .6rem; font-size:1rem;
+      border:1px solid var(--field-border); border-radius:10px; background:var(--field-bg); color:var(--fg);
+      outline:none;
+    }
+    .control input:focus, .control select:focus{ box-shadow:0 0 0 2px var(--focus); border-color:transparent; }
 
-    /* === Progress / status === */
-    .status{min-height:28px;margin:.25rem 0 .75rem;display:flex;align-items:center;justify-content:center;gap:.6rem;flex-wrap:wrap}
+    /* === Status / progress === */
+    .status{min-height:30px;margin:.25rem 0 .6rem;display:flex;align-items:center;justify-content:center;gap:.6rem;flex-wrap:wrap}
     .progress{display:flex;gap:.45rem;flex-wrap:wrap;justify-content:center}
     .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--primary);transition:background .3s,border-color .3s}
     .dot.done{background:var(--primary)}
-    .timebox{font-variant-numeric:tabular-nums;font-weight:600}
-    .timebar{position:relative;width:260px;height:8px;border-radius:999px;background:#cbd5e1;overflow:hidden}
+    .timebox{font-variant-numeric:tabular-nums;font-weight:700}
+    .timebar{position:relative;width:300px;height:8px;border-radius:999px;background:#cbd5e1;overflow:hidden}
     .timebar-inner{position:absolute;left:0;top:0;height:100%;width:0;background:var(--primary)}
 
-    /* === Buttons === */
-    .actions{display:flex;gap:.7rem;margin-bottom:2rem}
-    button{padding:.6rem 1.4rem;font-size:1rem;border:none;background:var(--primary);color:#fff;border-radius:8px;cursor:pointer;transition:background .3s}
-    button:disabled{opacity:.6;cursor:default}
+    /* === Buttons (unified) === */
+    .actions{display:flex;gap:.7rem;margin:.6rem 0 1.1rem;flex-wrap:wrap;justify-content:center}
+    .btn{padding:.7rem 1.2rem;font-size:1rem;border:none;border-radius:12px;cursor:pointer;transition:transform .05s ease,opacity .2s ease}
+    .btn:active{transform:translateY(1px)}
+    .btn:disabled{opacity:.6;cursor:default}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-outline{background:var(--btn-outline-bg);border:1px solid var(--primary);color:#fff}
+    body:not(.dark) .btn-outline{ color:var(--primary); }
+    .btn-ghost{background:transparent;border:1px solid rgba(148,163,184,.45);color:var(--fg)}
+    .btn-outline:hover,.btn-ghost:hover{opacity:.95}
 
-    /* === Theme toggle === */
-    .theme-toggle{position:fixed;left:1rem;bottom:1rem;display:flex;align-items:center;gap:.45rem;font-size:.9rem;user-select:none;z-index:10}
-    .theme-toggle input{position:absolute;opacity:0;width:0;height:0}
-    .slider{position:relative;width:46px;height:24px;border:2px solid var(--primary);border-radius:24px;background:var(--box-bg);cursor:pointer;transition:background .3s,border-color .3s}
-    .slider::before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:var(--primary);top:1px;left:1px;transition:transform .3s,background .3s}
+    /* === Toggles === */
+    .toggles{display:flex;gap:1rem;align-items:center;justify-content:center}
+    .toggle{display:flex;align-items:center;gap:.45rem;font-size:.95rem}
+    .toggle input{position:absolute;opacity:0;width:0;height:0}
+    .slider{position:relative;width:54px;height:28px;border:2px solid var(--primary);border-radius:28px;background:var(--box-bg);cursor:pointer;transition:background .3s,border-color .3s}
+    .slider::before{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:var(--primary);top:1px;left:1px;transition:transform .3s,background .3s}
     input:checked + .slider{background:var(--primary)}
-    input:checked + .slider::before{transform:translateX(22px);background:var(--box-bg)}
+    input:checked + .slider::before{transform:translateX(26px);background:var(--box-bg)}
 
-    /* === Mobile tweaks === */
-    @media(max-width:480px){
-      .box{width:200px;height:200px}
-      #stepText{font-size:1.25rem}
-      .control input{width:4.2rem;font-size:.95rem}
-      .timebar{width:220px}
-      h1{font-size:1.2rem}
+    /* === Modal (onboarding per karta) === */
+    .modal{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:1rem; z-index:50;
+      background:rgba(0,0,0,.28);
     }
+    .modal.show{display:flex}
+    .sheet{
+      width:min(920px, 95vw); max-height:86vh; overflow:auto;
+      border-radius:18px; padding:1rem 1rem .9rem;
+      background:var(--glass-bg); border:1px solid var(--glass-border);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      box-shadow:0 10px 30px var(--glass-shadow);
+    }
+    .sheet h3{margin:.1rem 0 .4rem}
+    .info-grid.modal-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+    .sheet .foot{display:flex;justify-content:flex-end;gap:.6rem;margin-top:.7rem;flex-wrap:wrap}
 
-    /* === Timer bar animations === */
-    @keyframes growX{from{width:0}to{width:100%}}
-    @keyframes growY{from{height:0}to{height:100%}}
-    @keyframes shrinkY{from{height:100%}to{height:0}}
-
-    /* Pro SVG prstenec – animace dash (z aktuální hodnoty na 0) */
-    @keyframes dash{to{stroke-dashoffset:0}}
+    /* === Mobile === */
+    @media(max-width:520px){
+      .box{width:240px;height:240px}
+      #stepText{font-size:1.2rem}
+      .control input, .control select{width:160px}
+      .timebar{width:260px}
+      h1{font-size:1.2rem}
+      .btn{width:100%}
+    }
   </style>
 </head>
 <body>
-  <h1>Dechová cvičení</h1>
+  <!-- dual background layers for crossfade -->
+  <div class="bg-anim float" id="bgA" aria-hidden="true"></div>
+  <div class="bg-anim float" id="bgB" aria-hidden="true"></div>
 
-  <!-- Tabs -->
-  <div class="tabs" role="tablist" aria-label="Cvičení">
-    <button class="tab" role="tab" data-id="free_timer" aria-selected="true">Volný rytmus (čas)</button>
-    <button class="tab" role="tab" data-id="relax_4_2_6" aria-selected="false">Relaxační 4–2–6</button>
-    <button class="tab" role="tab" data-id="co2_hold" aria-selected="false">CO₂ hold</button>
-    <button class="tab" role="tab" data-id="box" aria-selected="false">Box</button>
-  </div>
+  <div class="wrap" id="mainWrap">
+    <h1>DECH(ovka)</h1>
 
-  <div class="box">
-    <span id="stepText" aria-live="polite" role="status">Připrav se</span>
-    <div class="timer-bar" id="bar"></div>
-    <!-- SVG prstenec pro obvodovou animaci (pauza CO2 a speciální režimy) -->
-    <div class="ring" id="ring" aria-hidden="true">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <!-- start v levém spodním rohu, směr doprava a dokola (M x y) -->
-        <path id="ringPath" class="path" d="M2 98 H98 V2 H2 V98"/>
-      </svg>
+    <!-- Tabs -->
+    <div class="tabs" role="tablist" aria-label="Cvičení">
+      <button class="tab" role="tab" data-id="free_timer" aria-selected="true">Volná vlna</button>
+      <button class="tab" role="tab" data-id="relax_4_2_6" aria-selected="false">Klid 4–2–6</button>
+      <button class="tab" role="tab" data-id="co2_hold" aria-selected="false">CO₂ Reset</button>
+      <button class="tab" role="tab" data-id="box" aria-selected="false">Čtverec klidu</button>
+      <button class="tab" role="tab" data-id="wimhof" aria-selected="false">Energické cykly</button>
+      <button class="tab" role="tab" data-id="custom" aria-selected="false">Vlastní režim</button>
+    </div>
+
+    <!-- Glass info card -->
+    <section class="info-card" id="infoCard" aria-live="polite">
+      <div class="info-header">
+        <div class="info-title" id="infoTitle">Volná vlna</div>
+        <div class="info-sub" id="infoSub">Nastav si rytmus a plynule dýchej.</div>
+      </div>
+      <div class="info-brief" id="infoBrief">
+        Zpomal, slaď nádech s výdechem a srovnej hlavu.
+      </div>
+      <div class="info-actions">
+        <button class="link-btn" id="toggleDetailsBtn" aria-expanded="false" aria-controls="infoDetails">Více informací</button>
+      </div>
+      <div class="info-details" id="infoDetails"></div>
+    </section>
+
+    <!-- Breathing box -->
+    <div class="box" aria-label="Dechový vizualizér">
+      <span id="stepText" aria-live="polite" role="status">Připrav se</span>
+      <div class="timer-bar" id="bar"></div>
+      <div class="ring" id="ring" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path id="ringPath" class="path" d="M2 98 H98 V2 H2 V98"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Dynamic controls -->
+    <div class="controls" id="controls"></div>
+
+    <!-- Status / progress -->
+    <div class="status" id="status"></div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button id="startBtn" class="btn btn-primary" title="Začít dýchat">Začít</button>
+      <button id="pauseBtn" class="btn btn-outline" disabled title="Pozastavit / pokračovat">Pauza</button>
+      <button id="resetBtn" class="btn btn-ghost" title="Zastavit a vynulovat">Reset</button>
+    </div>
+
+    <!-- Toggles -->
+    <div class="toggles">
+      <label class="toggle" title="Přepnout světlý/tmavý režim">
+        <input type="checkbox" id="themeToggle"/>
+        <span class="slider"></span>
+        <span>Tmavý režim</span>
+      </label>
+      <label class="toggle" title="Vypnout/Zapnout pípnutí">
+        <input type="checkbox" id="muteToggle"/>
+        <span class="slider"></span>
+        <span>Mute</span>
+      </label>
     </div>
   </div>
 
-  <!-- Dynamic controls will render here -->
-  <div class="controls" id="controls"></div>
-  <div class="hint" id="hint"></div>
-
-  <!-- Status / progress -->
-  <div class="status" id="status"></div>
-
-  <div class="actions">
-    <button id="startBtn">Spustit</button>
-    <button id="resetBtn">Reset</button>
+  <!-- Onboarding modal (per karta) -->
+  <div class="modal" id="onboardModal" role="dialog" aria-modal="true" aria-labelledby="onbTitle">
+    <div class="sheet">
+      <h3 id="onbTitle">Vítej</h3>
+      <div class="info-grid modal-grid" id="onbGrid"></div>
+      <div class="foot">
+        <button class="btn btn-primary" id="onbClose">Rozumím</button>
+      </div>
+    </div>
   </div>
 
-  <label class="theme-toggle" title="Přepnout světlý/tmavý režim">
-    <input type="checkbox" id="themeToggle" />
-    <span class="slider"></span>
-    <span>Tmavý&nbsp;režim</span>
-  </label>
-
   <script>
-    // Elements
+    /* =======================
+       DOM references
+    ======================== */
     const stepText   = document.getElementById('stepText');
     const bar        = document.getElementById('bar');
     const ring       = document.getElementById('ring');
     const ringPath   = document.getElementById('ringPath');
     const controlsEl = document.getElementById('controls');
-    const hintEl     = document.getElementById('hint');
     const statusEl   = document.getElementById('status');
     const startBtn   = document.getElementById('startBtn');
+    const pauseBtn   = document.getElementById('pauseBtn');
     const resetBtn   = document.getElementById('resetBtn');
     const themeToggle= document.getElementById('themeToggle');
+    const muteToggle = document.getElementById('muteToggle');
     const tabButtons = document.querySelectorAll('.tab');
 
-    // --- Beeps per type
-    const BEEP = { inhale:440, hold:520, exhale:392, ventilate:480, pause:480 };
+    const bgA = document.getElementById('bgA');
+    const bgB = document.getElementById('bgB');
+    let activeBg = bgA;
 
-    // --- Exercises config
+    // Info card elements
+    const infoTitle= document.getElementById('infoTitle');
+    const infoSub  = document.getElementById('infoSub');
+    const infoBrief= document.getElementById('infoBrief');
+    const infoDetails = document.getElementById('infoDetails');
+    const toggleDetailsBtn = document.getElementById('toggleDetailsBtn');
+
+    // Onboarding modal
+    const onboardModal = document.getElementById('onboardModal');
+    const onbGrid = document.getElementById('onbGrid');
+    const onbClose = document.getElementById('onbClose');
+
+    /* =======================
+       Helpers / constants
+    ======================== */
+    const TYPE_LABELS = { inhale:'Nádech', exhale:'Výdech', hold:'Zadržení', pause:'Pauza', ventilate:'Pauza' };
+    const BEEP = { inhale:440, hold:520, exhale:392, ventilate:480, pause:480 };
+    const LS_PREFIX = 'breath_';
+    const ls = {
+      save(k,v){ try{ localStorage.setItem(LS_PREFIX+k, JSON.stringify(v)); }catch(e){} },
+      load(k,f){ try{ const v=localStorage.getItem(LS_PREFIX+k); return v?JSON.parse(v):f; }catch(e){ return f; } }
+    };
+
+    // Copy per exercise
+    const INFO = {
+      free_timer: {
+        title:'Volná vlna',
+        sub:'Nastav si rytmus a plynule dýchej.',
+        brief:'Zpomal, slaď nádech s výdechem a srovnej hlavu.',
+        blocks: [
+          { h:'Co to je', items:['Střídání nádechu a výdechu v tempu, které si nastavíš.', 'Běží po dobu, kterou zvolíš.'] },
+          { h:'Proč', items:['Zklidní nervový systém a sníží napětí.', 'Zlepší vnímání dechu a těla.', 'Krátký reset mezi povinnostmi.'] },
+          { h:'Kdy', items:['Kdykoli během dne, mezi úkoly, po náročném hovoru.'] },
+          { h:'Tipy & bezpečnost', items:['Dýchej pohodlně, bez tlačení.', 'Začni kratší dobou a postupně přidávej.', 'Ovládání: Začít / Pauza / Reset, Mute a Tmavý režim.'] }
+        ]
+      },
+      relax_4_2_6: {
+        title:'Klid 4–2–6',
+        sub:'Uvolní nervový systém během pár minut.',
+        brief:'Delší výdech aktivuje parasympatikus a uklidní tělo i mysl.',
+        blocks: [
+          { h:'Co to je', items:['Rytmus 4 s nádech → 2 s zadrž → 6 s výdech.', 'V několika sériích podle nastavení.'] },
+          { h:'Proč', items:['Snižuje stres a tep.', 'Zlepšuje usínání.'] },
+          { h:'Kdy', items:['Večer, před spaním, po zátěži.'] },
+          { h:'Tipy & bezpečnost', items:['Dýchej nosem, u výdechu nepřepínej.', 'Začni 3–5 sériemi.', 'Ovládání: Začít / Pauza / Reset; hodnoty se ukládají.'] }
+        ]
+      },
+      co2_hold: {
+        title:'CO₂ Reset',
+        sub:'Výdech do prázdna, držení, pauza — klid v napětí.',
+        brief:'Postupně zvyšuj toleranci na CO₂ a zvládni napětí klidným výdechem.',
+        blocks: [
+          { h:'Co to je', items:['Nádech → výdech „do prázdna“ → držení bez dechu → pauza.', 'Pauza má obvodový ukazatel času.'] },
+          { h:'Proč', items:['Zvyšuje toleranci na CO₂.', 'Pomáhá zvládat pocit dušnosti a napětí.'] },
+          { h:'Kdy', items:['Trénink klidu přes den; začínej opatrně.'] },
+          { h:'Tipy & bezpečnost', items:['Cvič vsedě/vleže. Nikdy ne ve vodě.', 'Při nepohodlí cvičení přeruš.', 'Ovládání: nastav série/časy, pak Začít / Pauza / Reset.'] }
+        ]
+      },
+      box: {
+        title:'Čtverec klidu',
+        sub:'Box breathing pro soustředění a stabilitu.',
+        brief:'Čtyři stejné kroky vyrovnají dech i soustředění.',
+        blocks: [
+          { h:'Co to je', items:['Čtyři stejně dlouhé fáze: nádech – zadrž – výdech – zadrž.', 'Každá fáze kreslí jinou hranu čtverce.'] },
+          { h:'Proč', items:['Stabilizuje dech i myšlenky.', 'Zlepšuje fokus a rozhodnost.'] },
+          { h:'Kdy', items:['Před prezentací, jednáním, tréninkem.'] },
+          { h:'Tipy & bezpečnost', items:['Začni kratším krokem (3–4 s), postupně přidávej.', 'Drž pohodlný rytmus, bez tlačení.', 'Ovládání: nastav série a délku kroku, pak Začít / Pauza / Reset.'] }
+        ]
+      },
+      wimhof: {
+        title:'Energické cykly',
+        sub:'Série dechů a držení pro energii a fokus.',
+        brief:'Rychle nakopne bdělost — cvič vsedě/vleže, ne před spaním.',
+        blocks: [
+          { h:'Co to je', items:['Série hlubších dechů, poté držení po výdechu, plný nádech a krátké držení.'] },
+          { h:'Proč', items:['Rychle zvedá bdělost.', 'Pomáhá přepnout pozornost.'] },
+          { h:'Kdy', items:['Ráno nebo před výkonem (ne těsně před spaním).'] },
+          { h:'Tipy & bezpečnost', items:['Cvič vsedě/vleže. Nikdy ne ve vodě.', 'Pokud se ti motá hlava, přeruš a dýchej klidně.', 'Ovládání: nastav cykly/dechy/tempo, pak Začít / Pauza / Reset.'] }
+        ]
+      },
+      custom: {
+        title:'Vlastní režim',
+        sub:'Sestav si cvičení na míru.',
+        brief:'Poskládej si kroky a časy přesně podle sebe.',
+        blocks: [
+          { h:'Co to je', items:['Poskládáš kroky (nádech, výdech, zadržení, pauza) a délky.', 'Nastavíš počet opakování sekvence.'] },
+          { h:'Proč', items:['Plná kontrola nad tempem a strukturou.', 'Snadno zkopíruješ osvědčené protokoly.'] },
+          { h:'Kdy', items:['Když víš, co chceš trénovat (relax, tolerance, fokus).'] },
+          { h:'Tipy & bezpečnost', items:['Začni jednoduše a přidávej až to sedne.', 'Sleduj, jak se cítíš — méně je víc.', 'Ovládání: přidej/odeber kroky, nastav opakování, pak Začít / Pauza / Reset.'] }
+        ]
+      }
+    };
+
+    // Exercises config (beze změn)  —  … (zůstává stejné jako v předchozí verzi)
+    /* --- kvůli délce vynechávám komentář, kód níž je identický s předchozí verzí --- */
+
     const exercises = {
       free_timer: {
-        name: 'Volný rytmus (čas)',
-        mode: 'timer',
+        name: 'Volná vlna', mode: 'timer',
         ui: [
           { id:'inhale', label:'Nádech (s)', type:'number', min:0.5, step:0.1, default:4 },
           { id:'exhale', label:'Výdech (s)', type:'number', min:0.5, step:0.1, default:4 },
-          { id:'minutes', label:'Doba cvičení (min)', type:'number', min:1, step:1, default:5 }
+          { id:'minutes',label:'Doba cvičení (min)', type:'number', min:1, step:1, default:5 }
         ],
-        hint: 'Střídá nádech (výplň nahoru) a výdech (výplň klesá) až do vypršení doby.',
         buildTimeline(params){
           const inh = Math.max(0.5, +params.inhale||4);
           const exh = Math.max(0.5, +params.exhale||4);
           const total = Math.max(1, +params.minutes||5) * 60;
-          const steps=[]; let t=0; let flip=true; // true=inhale, false=exhale
+          const steps=[]; let t=0; let flip=true;
           while(t < total - 1e-6){
             const dur = Math.min(flip?inh:exh, total - t);
-            steps.push({ label: flip?'Nádech':'Výdech', type: flip?'inhale':'exhale', dur });
+            steps.push({ label: flip?TYPE_LABELS.inhale:TYPE_LABELS.exhale, type: flip?'inhale':'exhale', dur });
             t += dur; flip = !flip;
           }
-          return { steps, totalSec: total, meta: { } };
+          return { steps, totalSec: total, meta: {} };
         }
       },
       relax_4_2_6: {
-        name: 'Relaxační 4–2–6',
-        mode: 'series',
-        ui: [
-          { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 }
-        ],
-        hint: 'Pevné časy: 4 s nádech (spodní hrana), 2 s zadrž (výplň), 6 s výdech (výplň klesá).',
+        name:'Klid 4–2–6', mode:'series',
+        ui:[ { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 } ],
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||4));
-          const labels = ['Nádech','Zadrž dech','Výdech'];
-          const types  = ['inhale','hold','exhale'];
-          const durs   = [4,2,6];
+          const labels=[TYPE_LABELS.inhale,TYPE_LABELS.hold,TYPE_LABELS.exhale];
+          const types =['inhale','hold','exhale'];
+          const durs  =[4,2,6];
           const steps=[]; const cycleEnds=[];
           for(let s=0;s<target;s++){
-            for(let i=0;i<durs.length;i++){
-              steps.push({ label: labels[i], type: types[i], dur: durs[i] });
-            }
+            for(let i=0;i<durs.length;i++) steps.push({ label:labels[i], type:types[i], dur:durs[i] });
             cycleEnds.push(steps.length-1);
           }
-          const totalSec = steps.reduce((a,b)=>a+b.dur,0);
-          return { steps, totalSec, meta:{ cycleEnds, target } };
+          return { steps, totalSec: steps.reduce((a,b)=>a+b.dur,0), meta:{ cycleEnds, target } };
         }
       },
       co2_hold: {
-        name: 'CO₂ hold',
-        mode: 'series',
-        ui: [
+        name:'CO₂ Reset', mode:'series',
+        ui:[
           { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:8 },
           { id:'inhale', label:'Nádech (s)', type:'number', min:0.5, step:0.5, default:3 },
           { id:'exhale', label:'Výdech vše ven (s)', type:'number', min:1, step:1, default:5 },
           { id:'hold',   label:'Zadržení (s)', type:'number', min:5, step:1, default:20 },
           { id:'pause',  label:'Pauza (s)', type:'number', min:5, step:5, default:30 }
         ],
-        hint: 'Sekvence: nádech (fix), výdech vše ven (fix), zadržení (nast.), pauza (nast., progres po obvodu).',
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||8));
           const inh = Math.max(0.5, +params.inhale||3);
           const exh = Math.max(1, +params.exhale||5);
           const hold= Math.max(5, +params.hold||20);
           const pause= Math.max(5, +params.pause||30);
-          const labels=['Nádech','Výdech vše ven','Zadržení','Pauza'];
+          const labels=[TYPE_LABELS.inhale,'Výdech vše ven',TYPE_LABELS.hold,TYPE_LABELS.pause];
           const types =['inhale','exhale','hold','pause'];
           const steps=[]; const cycleEnds=[];
           for(let s=0;s<target;s++){
-            [inh,exh,hold,pause].forEach((dur,i)=>{ steps.push({ label: labels[i], type: types[i], dur }); });
+            [inh,exh,hold,pause].forEach((dur,i)=> steps.push({ label:labels[i], type:types[i], dur }));
             cycleEnds.push(steps.length-1);
           }
-          const totalSec = steps.reduce((a,b)=>a+b.dur,0);
-          return { steps, totalSec, meta:{ cycleEnds, target } };
+          return { steps, totalSec: steps.reduce((a,b)=>a+b.dur,0), meta:{ cycleEnds, target } };
         }
       },
       box: {
-        name: 'Box',
-        mode: 'series',
-        ui: [
+        name:'Čtverec klidu', mode:'series',
+        ui:[
           { id:'target', label:'Cílové série', type:'number', min:1, step:1, default:4 },
-          { id:'base', label:'Délka kroku (s)', type:'number', min:0.5, step:0.1, default:4 }
+          { id:'base',   label:'Délka kroku (s)', type:'number', min:0.5, step:0.1, default:4 }
         ],
-        hint: 'Klasický box: Nádech – Zadrž – Výdech – Zadrž (všechny fáze stejně dlouhé). Animace po obvodu (každá fáze jedna hrana).',
         buildTimeline(params){
           const target = Math.max(1, Math.floor(+params.target||4));
           const base = Math.max(0.5, +params.base||4);
-          const labels = ['Nádech','Zadrž dech','Výdech','Zadrž dech'];
-          const types  = ['inhale','hold','exhale','hold'];
+          const labels=[TYPE_LABELS.inhale,TYPE_LABELS.hold,TYPE_LABELS.exhale,TYPE_LABELS.hold];
+          const types =['inhale','hold','exhale','hold'];
           const steps=[]; const cycleEnds=[];
           for(let s=0;s<target;s++){
-            for(let i=0;i<labels.length;i++){
-              steps.push({ label: labels[i], type: types[i], dur: base });
+            for(let i=0;i<labels.length;i++) steps.push({ label:labels[i], type:types[i], dur:base });
+            cycleEnds.push(steps.length-1);
+          }
+          return { steps, totalSec: steps.reduce((a,b)=>a+b.dur,0), meta:{ cycleEnds, target } };
+        }
+      },
+      wimhof: {
+        name:'Energické cykly', mode:'series',
+        ui:[
+          { id:'cycles',   label:'Cykly', type:'number', min:1, step:1, default:3 },
+          { id:'breaths',  label:'Dechy v cyklu', type:'number', min:10, step:1, default:30 },
+          { id:'tempo',    label:'Sekundy / dech', type:'number', min:0.8, step:0.1, default:2.0 },
+          { id:'retEmpty', label:'Zadržení po výdechu (s)', type:'number', min:10, step:5, default:60 },
+          { id:'retFull',  label:'Zadržení po plném nádechu (s)', type:'number', min:5, step:5, default:15 }
+        ],
+        buildTimeline(params){
+          const cycles = Math.max(1, Math.floor(+params.cycles||3));
+          const breaths= Math.max(10, Math.floor(+params.breaths||30));
+          const tempo  = Math.max(0.8, +params.tempo||2.0);
+          const inhDur = tempo*0.6;
+          const exhDur = tempo*0.4;
+          const retE   = Math.max(5, +params.retEmpty||60);
+          const retF   = Math.max(5, +params.retFull||15);
+          const steps=[]; const cycleEnds=[];
+          for(let c=0;c<cycles;c++){
+            for(let b=0;b<breaths;b++){
+              steps.push({ label:`${TYPE_LABELS.inhale} (${b+1}/${breaths})`, type:'inhale', dur:inhDur });
+              steps.push({ label:`${TYPE_LABELS.exhale} (${b+1}/${breaths})`, type:'exhale', dur:exhDur });
+            }
+            steps.push({ label:'Zadržení po výdechu', type:'hold', dur:retE });
+            steps.push({ label:'Hluboký nádech', type:'inhale', dur:1.5 });
+            steps.push({ label:'Drž plný dech', type:'hold', dur:retF });
+            cycleEnds.push(steps.length-1);
+          }
+          return { steps, totalSec: steps.reduce((a,b)=>a+b.dur,0), meta:{ cycleEnds, target:cycles } };
+        }
+      },
+      custom: {
+        name:'Vlastní režim', mode:'series',
+        ui:[ { id:'loops', label:'Opakování sekvence', type:'number', min:1, step:1, default:3 } ],
+        buildTimeline(params){
+          const loops = Math.max(1, Math.floor(+params.loops||3));
+          const stepsDef = getCustomSteps();
+          const steps=[]; const cycleEnds=[];
+          for(let L=0; L<loops; L++){
+            for(const s of stepsDef){
+              steps.push({ label: TYPE_LABELS[s.type] || 'Krok', type: s.type, dur: Math.max(0.1, +s.dur||1) });
             }
             cycleEnds.push(steps.length-1);
           }
-          const totalSec = steps.reduce((a,b)=>a+b.dur,0);
-          return { steps, totalSec, meta:{ cycleEnds, target } };
+          return { steps, totalSec: steps.reduce((a,b)=>a+b.dur,0), meta:{ cycleEnds, target:loops } };
         }
       }
     };
 
-    // --- State
-    let exId = 'free_timer';
-    let timeline = []; // {label, type, dur}
-    let meta = {};     // extra indices etc.
-    let totalSec = 0;  // planned total
-    let stepIdx = -1;
-    let stepDeadline = 0; // epoch ms when step ends
-    let t0 = 0;           // epoch ms when session started
-    let timerId = null;
-    let tickId = null;    // UI ticker
-    let audioCtx = null;
+    /* =======================
+       Background helpers
+    ======================== */
+    function gradientForPhase(phase){
+      const c = phase==='inhale' ? 'var(--bg-inhale)'
+              : phase==='exhale' ? 'var(--bg-exhale)'
+              : phase==='hold'   ? 'var(--bg-hold)'
+              :                    'var(--bg-pause)';
+      return `
+        radial-gradient(55% 55% at 40% 35%, ${c} 0%, ${c} 35%, transparent 75%),
+        radial-gradient(45% 45% at 70% 65%, ${c} 0%, transparent 70%)
+      `;
+    }
+    function fadeBgToPhase(phase, instant=false){
+      const target = (activeBg===bgA) ? bgB : bgA;
+      const opa = parseFloat(getComputedStyle(document.body).getPropertyValue('--bg-opa')) || 0.8;
+      target.style.background = gradientForPhase(phase);
+      target.style.opacity = instant ? String(opa) : '0';
+      requestAnimationFrame(()=>{
+        if(!instant){
+          target.style.opacity = String(opa);
+          activeBg.style.opacity = '0';
+        }
+        activeBg = target;
+      });
+    }
 
-    // --- Audio beep
+    /* =======================
+       State & audio
+    ======================== */
+    let exId = ls.load('last_tab','free_timer');
+    let timeline = []; let meta = {}; let totalSec = 0;
+    let stepIdx = -1; let stepDeadline = 0; let t0 = 0;
+    let timerId = null; let tickId = null;
+    let audioCtx = null; let paused = false; let remainingSec = 0;
+    let activeAnim = null; let activeRingAnim = null;
+
     function beep(freq, dur=200){
+      if(muteToggle.checked) return;
       try{
         if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type='sine';
-        osc.frequency.value=freq;
-        osc.connect(gain); gain.connect(audioCtx.destination);
+        const osc = audioCtx.createOscillator(); const gain= audioCtx.createGain();
+        osc.type='sine'; osc.frequency.value=freq; osc.connect(gain); gain.connect(audioCtx.destination);
         const t = audioCtx.currentTime;
-        gain.gain.setValueAtTime(0.0001,t);
-        gain.gain.exponentialRampToValueAtTime(0.25,t+0.02);
-        osc.start(t);
-        gain.gain.exponentialRampToValueAtTime(0.0001,t+dur/1000);
-        osc.stop(t+dur/1000+0.05);
+        gain.gain.setValueAtTime(0.0001,t); gain.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+        osc.start(t); gain.gain.exponentialRampToValueAtTime(0.0001,t+dur/1000); osc.stop(t+dur/1000+0.05);
       }catch(e){}
     }
 
-    // --- Theme
-    function applyTheme(initial=false){
-      if(initial){
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.body.classList.toggle('dark', prefersDark);
-        themeToggle.checked = prefersDark;
-      } else {
-        document.body.classList.toggle('dark', themeToggle.checked);
-      }
+    /* =======================
+       Info card & onboarding (per karta)
+    ======================== */
+    function renderInfo(){
+      const i = INFO[exId];
+      infoTitle.textContent = i.title;
+      infoSub.textContent   = i.sub;
+      infoBrief.textContent = i.brief;
+      infoDetails.innerHTML = `
+        <div class="info-grid">
+          ${i.blocks.map(b=>`
+            <div class="info-block">
+              <h4>${b.h}</h4>
+              <ul class="info-list">
+                ${b.items.map(li=>`<li>${li}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      infoDetails.classList.remove('show');
+      toggleDetailsBtn.setAttribute('aria-expanded','false');
+      toggleDetailsBtn.textContent = 'Více informací';
     }
 
-    // --- Controls rendering
+    toggleDetailsBtn.addEventListener('click', ()=>{
+      const open = infoDetails.classList.toggle('show');
+      toggleDetailsBtn.setAttribute('aria-expanded', String(open));
+      toggleDetailsBtn.textContent = open ? 'Méně informací' : 'Více informací';
+      document.body.classList.toggle('dim', open); // ztlum pozadí při detailu
+    });
+
+    function openOnboardingForCurrent(){
+      const seenKey = 'onb_seen_'+exId;
+      if(ls.load(seenKey,false)) return;
+      const i = INFO[exId];
+      document.getElementById('onbTitle').textContent = i.title;
+      onbGrid.innerHTML = `
+        <div class="info-block" style="grid-column:1/-1">
+          <strong>${i.sub}</strong><br>${i.brief}
+        </div>
+        ${i.blocks.map(b=>`
+          <div class="info-block">
+            <h4>${b.h}</h4>
+            <ul class="info-list">${b.items.map(x=>`<li>${x}</li>`).join('')}</ul>
+          </div>
+        `).join('')}
+      `;
+      document.body.classList.add('onboard'); // blur background
+      onboardModal.classList.add('show');
+      onbClose.onclick = ()=>{ onboardModal.classList.remove('show'); document.body.classList.remove('onboard'); ls.save(seenKey,true); };
+    }
+
+    /* =======================
+       Controls rendering (unified inputs)
+    ======================== */
     function renderControls(){
       controlsEl.innerHTML='';
-      const { ui, hint } = exercises[exId];
-      ui.forEach(def=>{
-        const wrap = document.createElement('div'); wrap.className='control';
-        const lab = document.createElement('label'); lab.htmlFor = def.id; lab.textContent = def.label;
-        const inp = document.createElement('input');
-        inp.id=def.id; inp.type=def.type||'number';
-        if(def.min!=null) inp.min=def.min;
-        if(def.step!=null) inp.step=def.step;
-        inp.value = def.default;
-        wrap.appendChild(lab); wrap.appendChild(inp);
-        controlsEl.appendChild(wrap);
-      });
-      hintEl.textContent = hint || '';
+      const { ui } = exercises[exId];
+
+      if(exId==='custom'){
+        const builderTop = document.createElement('div');
+        builderTop.className='row';
+        builderTop.innerHTML = `
+          <div class="control">
+            <label for="loops">Opakování</label>
+            <input id="loops" type="number" min="1" step="1" value="${ls.load('custom_loops',3)}" inputmode="numeric">
+          </div>`;
+        controlsEl.appendChild(builderTop);
+
+        const list = document.createElement('div'); list.id='customList'; list.className='row';
+        controlsEl.appendChild(list);
+        renderCustomRows();
+
+        const addRowWrap = document.createElement('div'); addRowWrap.className='row';
+        const btn = document.createElement('button'); btn.textContent='Přidat krok'; btn.type='button'; btn.className='btn btn-outline';
+        btn.addEventListener('click', addCustomRow);
+        addRowWrap.appendChild(btn); controlsEl.appendChild(addRowWrap);
+      } else {
+        const row = document.createElement('div'); row.className='row';
+        ui.forEach(def=>{
+          const wrap=document.createElement('div'); wrap.className='control';
+          const lab=document.createElement('label'); lab.htmlFor=def.id; lab.textContent=def.label;
+          const inp=document.createElement('input');
+          inp.id=def.id; inp.type=def.type||'number';
+          if(def.min!=null) inp.min=def.min;
+          if(def.step!=null) inp.step=def.step;
+          inp.setAttribute('inputmode', (def.step && def.step%1!==0) ? 'decimal' : 'numeric');
+          inp.value = ls.load(exId+'_'+def.id, def.default);
+          wrap.appendChild(lab); wrap.appendChild(inp);
+          row.appendChild(wrap);
+        });
+        controlsEl.appendChild(row);
+      }
       renderStatusIdle();
     }
 
@@ -327,37 +716,95 @@
       const p={};
       (exercises[exId].ui||[]).forEach(def=>{
         const el = document.getElementById(def.id);
-        if(!el) return;
-        p[def.id] = el.type==='number' ? +el.value : el.value;
+        if(!el) return; p[def.id] = el.type==='number' ? +el.value : el.value;
       });
+      if(exId==='custom'){ p.loops = +document.getElementById('loops').value || 3; }
       return p;
     }
 
-    // --- Status / Progress rendering
-    function clearStatus(){ statusEl.innerHTML=''; }
+    controlsEl.addEventListener('input', (e)=>{
+      if(!startBtn.disabled) renderStatusIdle();
+      const t=e.target; if(!t || !t.id) return;
+      if(exId==='custom'){
+        if(t.id==='loops') ls.save('custom_loops', +t.value||3);
+        if(t.classList.contains('custom-field')) saveCustomFromDOM();
+      } else {
+        ls.save(exId+'_'+t.id, t.type==='number'? +t.value : t.value);
+      }
+    });
 
+    /* =======================
+       Custom builder logic
+    ======================== */
+    let customSteps = ls.load('custom_steps', [
+      { type:'inhale', dur:4 },
+      { type:'hold',   dur:2 },
+      { type:'exhale', dur:4 }
+    ]);
+
+    function renderCustomRows(){
+      const list = document.getElementById('customList'); list.innerHTML='';
+      customSteps.forEach((s,idx)=>{
+        const row = document.createElement('div'); row.className='row'; row.dataset.idx=idx;
+        row.innerHTML = `
+          <div class="control"><label>Typ</label>
+            <select class="custom-field" data-key="type">
+              ${['inhale','exhale','hold','pause'].map(t=>`<option value="${t}" ${t===s.type?'selected':''}>${TYPE_LABELS[t]}</option>`).join('')}
+            </select>
+          </div>
+          <div class="control"><label>Délka (s)</label>
+            <input class="custom-field" data-key="dur" type="number" min="0.1" step="0.1" value="${s.dur}" inputmode="decimal">
+          </div>
+          <div class="control" style="align-items:center"><button type="button" data-action="del" class="btn btn-ghost" title="Smazat krok">Smazat</button></div>
+        `;
+        list.appendChild(row);
+      });
+      list.onclick = onCustomListClick;
+      list.oninput = onCustomListInput;
+    }
+    function onCustomListClick(e){
+      const btn = e.target.closest('button[data-action="del"]'); if(!btn) return;
+      const row = btn.closest('.row'); const idx = +row.dataset.idx;
+      customSteps.splice(idx,1); ls.save('custom_steps', customSteps);
+      renderCustomRows(); if(!startBtn.disabled) renderStatusIdle();
+    }
+    function onCustomListInput(e){
+      if(!e.target.classList.contains('custom-field')) return;
+      saveCustomFromDOM(); if(!startBtn.disabled) renderStatusIdle();
+    }
+    function addCustomRow(){
+      customSteps.push({ type:'inhale', dur:4 }); ls.save('custom_steps', customSteps); renderCustomRows();
+    }
+    function saveCustomFromDOM(){
+      const list = document.getElementById('customList'); const rows = list.querySelectorAll('.row');
+      customSteps = Array.from(rows).map(r=>({
+        type: r.querySelector('[data-key="type"]').value || 'inhale',
+        dur:  parseFloat(r.querySelector('[data-key="dur"]').value) || 1
+      }));
+      ls.save('custom_steps', customSteps);
+    }
+    function getCustomSteps(){ return customSteps; }
+
+    /* =======================
+       Status / progress
+    ======================== */
+    function clearStatus(){ statusEl.innerHTML=''; }
     function renderSeriesDots(n){
       const wrap = document.createElement('div'); wrap.className='progress';
-      for(let i=0;i<n;i++){
-        const d=document.createElement('div'); d.className='dot'; wrap.appendChild(d);
-      }
+      for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='dot'; wrap.appendChild(d); }
       statusEl.appendChild(wrap);
     }
-
     function markSeriesProgress(completed){
       const dots = statusEl.querySelectorAll('.dot');
-      dots.forEach((d,i)=>{ d.classList.toggle('done', i < completed); });
+      dots.forEach((d,i)=> d.classList.toggle('done', i < completed));
     }
-
     function renderTimer(total){
       const tb = document.createElement('div'); tb.className='timebar';
       const inner = document.createElement('div'); inner.className='timebar-inner'; inner.id='timebarInner';
-      inner.style.width = '0%';
-      tb.appendChild(inner);
+      inner.style.width='0%'; tb.appendChild(inner);
       const txt = document.createElement('div'); txt.className='timebox'; txt.id='timebox'; txt.textContent = fmtTime(total);
       statusEl.appendChild(txt); statusEl.appendChild(tb);
     }
-
     function updateTimerUI(){
       if(!t0 || !totalSec) return;
       const now = Date.now();
@@ -368,148 +815,113 @@
       if(inner){ inner.style.width = `${Math.min(100, (elapsed/totalSec)*100)}%`; }
       if(txt){ txt.textContent = fmtTime(remain); }
     }
-
-    function renderTableRounds(n){
-      const label = document.createElement('div'); label.className='timebox'; label.id='roundbox'; label.textContent = `Kolo 0/${n}`;
-      statusEl.appendChild(label);
-      renderSeriesDots(n);
-    }
-
-    function updateRoundUI(roundDone, rounds){
-      const box = document.getElementById('roundbox');
-      if(box) box.textContent = `Kolo ${Math.min(roundDone, rounds)}/${rounds}`;
-      markSeriesProgress(roundDone);
-    }
-
     function renderStatusIdle(){
       clearStatus();
       const ex = exercises[exId];
       if(ex.mode==='series'){
-        const targetInp = document.getElementById('target');
+        const targetInp = document.getElementById('target') || document.getElementById('cycles') || document.getElementById('loops');
         const target = targetInp ? Math.max(1, Math.floor(+targetInp.value||1)) : 1;
         renderSeriesDots(target);
       } else if(ex.mode==='timer'){
         const mins = document.getElementById('minutes');
         const total = (mins? +mins.value||5 : 5)*60;
         renderTimer(total);
-      } else if(ex.mode==='table'){
-        const rounds = Math.max(1, Math.floor(+document.getElementById('rounds')?.value||8));
-        renderTableRounds(rounds);
       }
     }
 
-    // --- SVG ring helpers ---
+    /* =======================
+       SVG ring via WAAPI
+    ======================== */
     function hideRing(){
-      ringPath.style.animation='none';
-      // reset dash so next run starts from full perimeter
-      const length = ringPath.getTotalLength();
-      ringPath.style.strokeDasharray = length;
-      ringPath.style.strokeDashoffset = length;
+      if(activeRingAnim){ activeRingAnim.cancel(); activeRingAnim=null; }
       ring.style.opacity = 0;
+      const L = ringPath.getTotalLength();
+      ringPath.style.strokeDasharray = String(L);
+      ringPath.style.strokeDashoffset = String(L);
     }
-    function drawRing(durationSec){
-      const length = ringPath.getTotalLength();
-      ringPath.style.animation='none';
-      ringPath.style.strokeDasharray = length;
-      ringPath.style.strokeDashoffset = length;
-      // force reflow
-      ringPath.getBoundingClientRect();
-      ringPath.style.animation = `dash ${Math.max(0.1,durationSec)}s linear forwards`;
+    function drawRing(durationSec, startFraction=0){
+      const L = ringPath.getTotalLength();
+      if(activeRingAnim){ activeRingAnim.cancel(); }
       ring.style.opacity = 1;
+      ringPath.style.strokeDasharray = String(L);
+      ringPath.style.strokeDashoffset = String(L);
+      activeRingAnim = ringPath.animate(
+        [{ strokeDashoffset: L }, { strokeDashoffset: 0 }],
+        { duration: durationSec*1000, easing:'linear', fill:'forwards' }
+      );
+      if(startFraction>0){ activeRingAnim.currentTime = startFraction*durationSec*1000; }
     }
 
-    // --- Drawing / animation per step type
-    function drawBar(step){
-      const durSec = Math.max(0.1, step.dur);
-      const dur = `${durSec}s`;
+    /* =======================
+       Animations (WAAPI)
+    ======================== */
+    function drawBar(step, overrideDurSec=null, startFraction=0){
+      const durSec = Math.max(0.1, overrideDurSec!=null? overrideDurSec : step.dur);
+      fadeBgToPhase(step.type);
 
-      // default: hide ring
+      if(activeAnim){ activeAnim.cancel(); activeAnim=null; }
       hideRing();
 
-      // fully reset and force reflow so animations always restart
-      bar.style.animation='none';
-      bar.style.transform='none';
-      bar.style.top='auto'; bar.style.bottom='auto'; bar.style.left='auto'; bar.style.right='auto';
-      bar.style.width='4px'; bar.style.height='4px';
-      void bar.offsetWidth; // reflow
+      Object.assign(bar.style, {
+        animation:'none', transition:'none', transform:'none',
+        top:'auto', bottom:'auto', left:'auto', right:'auto',
+        width:'4px', height:'4px'
+      });
 
-      // Special layout for BOX: každá fáze = jedna hrana obvodu
       if(exId==='box'){
-        const seg = stepIdx % 4; // 0 inhale, 1 hold, 2 exhale, 3 hold
-        switch(seg){
-          case 0: // spodní hrana → doprava
-            bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
-            bar.style.animation=`growX ${dur} linear forwards`; break;
-          case 1: // pravá hrana ↑
-            bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
-            bar.style.animation=`growY ${dur} linear forwards`; break;
-          case 2: // horní hrana ←
-            bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0';
-            bar.style.transform='scaleX(-1)';
-            bar.style.animation=`growX ${dur} linear forwards`; break;
-          case 3: // levá hrana ↓
-            bar.style.top='0'; bar.style.left='0'; bar.style.width='4px'; bar.style.height='0';
-            bar.style.animation=`growY ${dur} linear forwards`; break;
-        }
+        const seg = stepIdx % 4; let prop;
+        if(seg===0){ Object.assign(bar.style,{ bottom:'0', left:'0', height:'4px' }); prop='width'; }
+        else if(seg===1){ Object.assign(bar.style,{ right:'0', bottom:'0', width:'4px' }); prop='height'; }
+        else if(seg===2){ Object.assign(bar.style,{ top:'0', right:'0', height:'4px', transform:'scaleX(-1)' }); prop='width'; }
+        else { Object.assign(bar.style,{ top:'0', left:'0', width:'4px' }); prop='height'; }
+        activeAnim = bar.animate(
+          [{ [prop]:'0%' }, { [prop]:'100%' }],
+          { duration: durSec*1000, easing:'linear', fill:'forwards' }
+        );
+        if(startFraction>0){ activeAnim.currentTime = startFraction*durSec*1000; }
         return;
       }
 
-      // CO2: pauza = prstenec po obvodu od levého spodního rohu
-      if(exId==='co2_hold' && step.type==='pause'){
-        drawRing(durSec);
-        return;
-      }
+      if(exId==='co2_hold' && step.type==='pause'){ drawRing(durSec, startFraction); return; }
 
-      // Ostatní režimy podle typu kroku
-      switch(step.type){
-        case 'inhale': {
-          if(exId==='free_timer'){
-            // Inhale = výplň celého čtverce zdola nahoru
-            bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='0';
-            bar.style.animation=`growY ${dur} linear forwards`;
-          } else {
-            // Default: spodní hrana → doprava
-            bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
-            bar.style.animation=`growX ${dur} linear forwards`;
-          }
-          break;
+      const fillMode = (exId==='free_timer' || exId==='wimhof' || exId==='custom' || step.type==='hold');
+      const relax = (exId==='relax_4_2_6');
+
+      if(step.type==='inhale'){
+        if(relax){
+          Object.assign(bar.style,{ bottom:'0', left:'0', height:'4px' });
+          activeAnim = bar.animate([{ width:'0%' }, { width:'100%' }], { duration: durSec*1000, easing:'linear', fill:'forwards' });
+        } else {
+          Object.assign(bar.style,{ left:'0', bottom:'0', width:'100%' });
+          activeAnim = bar.animate([{ height:'0%' }, { height:'100%' }], { duration: durSec*1000, easing:'linear', fill:'forwards' });
         }
-        case 'exhale': {
-          if(exId==='free_timer' || exId==='relax_4_2_6'){
-            // Výdech = výplň klesá zpět
-            bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='100%';
-            bar.style.animation=`shrinkY ${dur} linear forwards`;
-          } else {
-            // Default: horní hrana ←
-            bar.style.top='0'; bar.style.right='0'; bar.style.height='4px'; bar.style.width='0';
-            bar.style.transform='scaleX(-1)';
-            bar.style.animation=`growX ${dur} linear forwards`;
-          }
-          break;
+      } else if(step.type==='exhale'){
+        if(relax || fillMode){
+          Object.assign(bar.style,{ left:'0', bottom:'0', width:'100%', height:'100%' });
+          activeAnim = bar.animate([{ height:'100%' }, { height:'0%' }], { duration: durSec*1000, easing:'linear', fill:'forwards' });
+        } else {
+          Object.assign(bar.style,{ top:'0', right:'0', height:'4px', transform:'scaleX(-1)' });
+          activeAnim = bar.animate([{ width:'0%' }, { width:'100%' }], { duration: durSec*1000, easing:'linear', fill:'forwards' });
         }
-        case 'hold': // výplň zdola nahoru
-          bar.style.left='0'; bar.style.bottom='0'; bar.style.width='100%'; bar.style.height='0';
-          bar.style.animation=`growY ${dur} linear forwards`;
-          break;
-        case 'ventilate': // pravá hrana ↑
-          bar.style.right='0'; bar.style.bottom='0'; bar.style.width='4px'; bar.style.height='0';
-          bar.style.animation=`growY ${dur} linear forwards`;
-          break;
-        case 'pause': // fallback, kdyby nebyl CO2 režim
-          bar.style.bottom='0'; bar.style.left='0'; bar.style.height='4px'; bar.style.width='0';
-          bar.style.animation=`growX ${dur} linear forwards`;
-          break;
+      } else if(step.type==='hold'){
+        Object.assign(bar.style,{ left:'0', bottom:'0', width:'100%' });
+        activeAnim = bar.animate([{ height:'0%' }, { height:'100%' }], { duration: durSec*1000, easing:'linear', fill:'forwards' });
+      } else {
+        Object.assign(bar.style,{ bottom:'0', left:'0', height:'4px' });
+        activeAnim = bar.animate([{ width:'0%' }, { width:'100%' }], { duration: durSec*1000, easing:'linear', fill:'forwards' });
       }
+      if(startFraction>0 && activeAnim){ activeAnim.currentTime = startFraction*durSec*1000; }
     }
 
-    // --- Helpers
+    /* =======================
+       Engine
+    ======================== */
     function fmtTime(sec){
       sec = Math.max(0, Math.round(sec));
       const m = Math.floor(sec/60).toString();
       const s = (sec%60).toString().padStart(2,'0');
       return `${m}:${s}`;
     }
-
     function scheduleNext(){
       clearTimeout(timerId); timerId=null;
       const step = timeline[stepIdx];
@@ -520,96 +932,138 @@
       beep(BEEP[step.type]||440);
       timerId = setTimeout(()=>{ advance(); }, step.dur*1000);
     }
-
     function advance(){
       stepIdx++;
       if(stepIdx >= timeline.length){ stopCycle(); return; }
-
-      // Update progress meta
       const ex = exercises[exId];
       if(ex.mode==='series' && meta.cycleEnds){
         const done = meta.cycleEnds.filter(i => i < stepIdx).length;
         markSeriesProgress(done);
       }
-      if(ex.mode==='table' && meta.roundEnds){
-        const rounds = meta.rounds;
-        const done = meta.roundEnds.filter(i => i < stepIdx).length;
-        updateRoundUI(done, rounds);
-      }
-
       scheduleNext();
     }
-
     function startCycle(){
       if(startBtn.disabled) return;
       const { buildTimeline, mode } = exercises[exId];
       const params = readParams();
       const built = buildTimeline(params);
       timeline = built.steps; totalSec = built.totalSec; meta = built.meta||{};
-      if(!timeline.length){ return; }
-      // Reset UI
-      stepIdx = 0; t0 = Date.now();
-      startBtn.disabled=true;
-      // Render status widgets for this run
-      clearStatus();
-      if(mode==='series'){
-        renderSeriesDots(meta.target||1);
-      } else if(mode==='timer'){
-        renderTimer(totalSec); updateTimerUI();
-      } else if(mode==='table'){
-        renderTableRounds(meta.rounds||1);
-      }
-      // First step
-      stepIdx = -1; advance();
-      // Ticker for time-based UIs
-      clearInterval(tickId);
-      if(mode!=='series'){
-        tickId = setInterval(updateTimerUI, 250);
-      }
-    }
+      if(!timeline.length) return;
 
+      stepIdx = 0; t0 = Date.now();
+      startBtn.disabled=true; pauseBtn.disabled=false; pauseBtn.textContent='Pauza'; paused=false;
+
+      clearStatus();
+      if(mode==='series'){ renderSeriesDots(meta.target||1); markSeriesProgress(0); }
+      else if(mode==='timer'){ renderTimer(totalSec); updateTimerUI(); }
+
+      stepIdx = -1; advance();
+
+      clearInterval(tickId);
+      if(mode!=='series'){ tickId = setInterval(updateTimerUI, 250); }
+
+      infoDetails.classList.remove('show'); toggleDetailsBtn.setAttribute('aria-expanded','false'); toggleDetailsBtn.textContent='Více informací';
+      document.body.classList.remove('dim');
+    }
     function stopCycle(){
       clearTimeout(timerId); timerId=null;
       clearInterval(tickId); tickId=null;
-      bar.style.animation='none';
+      if(activeAnim){ activeAnim.cancel(); activeAnim=null; }
+      if(activeRingAnim){ activeRingAnim.cancel(); activeRingAnim=null; }
       hideRing();
+      const ex = exercises[exId];
+      if(ex.mode==='series' && meta.target){ markSeriesProgress(meta.target); }
       stepText.textContent='Hotovo!';
-      startBtn.disabled=false;
+      startBtn.disabled=false; pauseBtn.disabled=true; paused=false;
     }
-
     function resetCycle(){
       clearTimeout(timerId); timerId=null;
       clearInterval(tickId); tickId=null;
-      startBtn.disabled=false;
-      bar.style.animation='none';
+      if(activeAnim){ activeAnim.cancel(); activeAnim=null; }
+      if(activeRingAnim){ activeRingAnim.cancel(); activeRingAnim=null; }
       hideRing();
+      startBtn.disabled=false; pauseBtn.disabled=true; paused=false; pauseBtn.textContent='Pauza';
       stepText.textContent='Připrav se';
       t0=0; stepIdx=-1; timeline=[]; meta={}; totalSec=0;
       renderStatusIdle();
+      fadeBgToPhase('hold', true);   /* výchozí overlay = zelené zadržení */
+    }
+    function pauseCycle(){
+      if(paused) return resumeCycle();
+      if(startBtn.disabled!==true) return;
+      paused = true; pauseBtn.textContent='Pokračovat';
+
+      clearTimeout(timerId); timerId=null;
+      if(tickId){ clearInterval(tickId); tickId=null; }
+
+      if(activeAnim){ activeAnim.pause(); }
+      if(activeRingAnim){ activeRingAnim.pause(); }
+
+      const remain = Math.max(0, stepDeadline - Date.now());
+      remainingSec = remain/1000;
+    }
+    function resumeCycle(){
+      if(!paused) return;
+      paused=false; pauseBtn.textContent='Pauza';
+
+      if(activeAnim){ activeAnim.play(); }
+      if(activeRingAnim){ activeRingAnim.play(); }
+
+      const remaining = Math.max(0.05, remainingSec||0.05);
+      stepDeadline = Date.now() + remaining*1000;
+      timerId = setTimeout(()=>{ advance(); }, remaining*1000);
+
+      if(exercises[exId].mode!=='series'){ tickId = setInterval(updateTimerUI, 250); }
     }
 
-    // --- Tabs
+    /* =======================
+       Tabs, theme, events
+    ======================== */
     function setExercise(id){
       if(!exercises[id]) return;
-      exId = id;
+      exId = id; ls.save('last_tab', id);
       tabButtons.forEach(btn=>btn.setAttribute('aria-selected', btn.dataset.id===id ? 'true':'false'));
       resetCycle();
       renderControls();
+      renderInfo();
+      openOnboardingForCurrent();
     }
 
-    // --- Init
-    applyTheme(true);
-    renderControls();
-    renderStatusIdle();
+    function applyTheme(initial=false){
+      if(initial){
+        const saved = ls.load('theme', null);
+        const sysPref = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const useDark = saved!=null ? saved : sysPref;
+        document.body.classList.toggle('dark', useDark);
+        themeToggle.checked = useDark;
+      } else {
+        document.body.classList.toggle('dark', themeToggle.checked);
+        ls.save('theme', themeToggle.checked);
+      }
+      fadeBgToPhase('hold', true);   /* inicializace overlay = zelené „zadržení“ */
+    }
 
-    // --- Events
+    // Pause when hidden
+    document.addEventListener('visibilitychange', ()=> {
+      if(document.hidden && startBtn.disabled===true && !paused) pauseCycle();
+    });
+
+    // Init
+    applyTheme(true);
+    const savedMute = ls.load('mute', false); muteToggle.checked = !!savedMute;
+    bgA.classList.add('float'); bgB.classList.add('float');
+    bgA.style.opacity='0'; bgB.style.opacity='0'; activeBg = bgA; fadeBgToPhase('hold', true);
+    renderControls(); renderStatusIdle(); renderInfo();
+    tabButtons.forEach(btn=> btn.setAttribute('aria-selected', btn.dataset.id===exId ? 'true':'false'));
+    setTimeout(openOnboardingForCurrent, 80);
+
+    // Events
     themeToggle.addEventListener('change',()=>applyTheme());
+    muteToggle.addEventListener('change',()=> ls.save('mute', muteToggle.checked));
     startBtn.addEventListener('click', startCycle);
     resetBtn.addEventListener('click', resetCycle);
+    pauseBtn.addEventListener('click', ()=> (paused? resumeCycle(): pauseCycle()));
     tabButtons.forEach(btn=> btn.addEventListener('click', ()=> setExercise(btn.dataset.id)) );
-
-    // When inputs change, refresh idle status preview (time/dots)
-    controlsEl.addEventListener('input', ()=>{ if(!startBtn.disabled) renderStatusIdle(); });
   </script>
 </body>
 </html>
